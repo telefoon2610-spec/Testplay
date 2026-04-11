@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wave FIX CLICK SAFE</title>
+
+<script src="https://unpkg.com/wavesurfer.js@6.6.4/dist/wavesurfer.min.js"></script>
+
+<style>
+body {
+  margin: 0;
+  font-family: system-ui;
+  background: #0b0f19;
+  color: white;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* APP WRAPPER */
+.app {
+  width: 100%;
+  max-width: 520px;
+  background: #141c30;
+  border-radius: 16px;
+  padding: 16px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* WAVE AREA (ISOLATED) */
+#waveform {
+  height: 120px;
+  background: #0b1020;
+  border-radius: 12px;
+}
+
+/* CONTROLS */
+.controls {
+  display: flex;
+  gap: 6px;
+}
+
+button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  background: #24304f;
+  color: white;
+  cursor: pointer;
+}
+
+/* TRACK LIST (IMPORTANT FIX AREA) */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  /* 🔥 HARD ISOLATION */
+  position: relative;
+  z-index: 9999;
+  pointer-events: auto;
+}
+
+/* TRACK ITEM */
+.track {
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+  cursor: pointer;
+
+  /* 🔥 CRITICAL */
+  position: relative;
+  z-index: 9999;
+  pointer-events: auto;
+}
+
+.track:hover {
+  background: rgba(255,255,255,0.12);
+}
+
+.track.active {
+  background: #2b6fff;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <h2>🎧 Wave FIX CLICK SAFE</h2>
+
+  <div id="waveform"></div>
+
+  <div class="controls">
+    <button onclick="togglePlay()">▶ / ⏸</button>
+    <button onclick="setA()">A</button>
+    <button onclick="setB()">B</button>
+    <button onclick="toggleLoop()">Loop</button>
+  </div>
+
+  <div class="list" id="list"></div>
+
+</div>
+
+<script>
+const tracks = [
+  { name: "Bailando la soca", file: "Bailando_la_soca.mp3" },
+  { name: "Moving sounds", file: "Moving_sounds.mp3" },
+  { name: "Smoothavana", file: "Smoothavana.mp3" },
+  { name: "Walk like an Egyptian", file: "Walk_like_an_Egyptian.mp3" },
+  { name: "Windows of the maloca", file: "Windows.mp3" },
+];
+
+let current = 0;
+let loopA = null;
+let loopB = null;
+let loopOn = false;
+
+const wavesurfer = WaveSurfer.create({
+  container: '#waveform',
+  waveColor: '#3a4b70',
+  progressColor: '#2b6fff',
+  cursorColor: '#fff',
+  height: 120
+});
+
+// TRACK LIST
+const list = document.getElementById("list");
+
+tracks.forEach((t, i) => {
+  const el = document.createElement("div");
+  el.className = "track";
+  el.innerText = t.name;
+
+  // 🔥 HARD CLICK TEST
+  el.onclick = () => {
+    console.log("CLICK OK:", t.name);
+    play(i);
+  };
+
+  list.appendChild(el);
+});
+
+// PLAY TRACK
+function play(i) {
+  current = i;
+
+  loopA = null;
+  loopB = null;
+  loopOn = false;
+
+  updateUI();
+
+  wavesurfer.stop();
+
+  setTimeout(() => {
+    wavesurfer.empty();
+    wavesurfer.load(tracks[i].file + "?v=" + Date.now());
+  }, 80);
+}
+
+// PLAY / PAUSE
+function togglePlay() {
+  wavesurfer.playPause();
+}
+
+// A
+function setA() {
+  loopA = wavesurfer.getCurrentTime();
+}
+
+// B
+function setB() {
+  loopB = wavesurfer.getCurrentTime();
+}
+
+// LOOP
+function toggleLoop() {
+  loopOn = !loopOn;
+}
+
+// LOOP LOGIC
+wavesurfer.on('audioprocess', () => {
+  if (!loopOn || loopA === null || loopB === null) return;
+
+  if (wavesurfer.getCurrentTime() >= loopB) {
+    wavesurfer.setTime(loopA);
+  }
+});
+
+// READY
+wavesurfer.on('ready', () => {
+  wavesurfer.play();
+});
+
+// UI
+function updateUI() {
+  document.querySelectorAll(".track").forEach((t, i) => {
+    t.classList.toggle("active", i === current);
+  });
+}
+
+// INIT
+play(0);
+</script>
+
+</body>
+</html>
