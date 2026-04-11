@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<title>Wave Debug</title>
+
+<script src="https://unpkg.com/wavesurfer.js@6.6.4/dist/wavesurfer.min.js"></script>
+
+<style>
+body {
+  background:#0b0f19;
+  color:white;
+  font-family:system-ui;
+  padding:20px;
+}
+
+#waveform {
+  height:100px;
+  background:#111a2e;
+  border-radius:10px;
+  margin-bottom:10px;
+}
+
+.track {
+  padding:10px;
+  background:#1f2a44;
+  margin:5px 0;
+  cursor:pointer;
+  border-radius:8px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🎧 Wave Debug</h2>
+
+<div id="waveform"></div>
+
+<div id="status">Status: idle</div>
+
+<div class="track" onclick="loadTrack('Bailando_la_soca.mp3')">
+Bailando la soca
+</div>
+
+<div class="track" onclick="loadTrack('Moving_sounds.mp3')">
+Moving sounds
+</div>
+
+<script>
+const status = document.getElementById("status");
+
+const wavesurfer = WaveSurfer.create({
+  container: '#waveform',
+  waveColor: '#3a4b70',
+  progressColor: '#2b6fff',
+  height: 100
+});
+
+function loadTrack(file) {
+  status.innerText = "Loading: " + file;
+
+  console.log("Loading:", file);
+
+  wavesurfer.stop();
+  wavesurfer.empty();
+
+  wavesurfer.load(file);
+}
+
+wavesurfer.on('loading', (p) => {
+  status.innerText = "Loading... " + p + "%";
+});
+
+wavesurfer.on('ready', () => {
+  status.innerText = "Ready ▶ playing";
+  wavesurfer.play();
+});
+
+wavesurfer.on('error', (e) => {
+  console.log("ERROR:", e);
+  status.innerText = "ERROR loading file ❌";
+});
+</script>
+
+</body>
+</html>
