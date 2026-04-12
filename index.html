@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pro DJ Player</title>
+
+<script src="https://unpkg.com/wavesurfer.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:system-ui;
+  background:#070a12;
+  color:white;
+  display:flex;
+  justify-content:center;
+  padding:18px;
+}
+
+/* APP WRAPPER */
+.app{
+  width:100%;
+  max-width:460px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+/* HEADER */
+.header{
+  background:#101726;
+  padding:12px 14px;
+  border-radius:14px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.header h2{
+  margin:0;
+  font-size:16px;
+}
+
+/* PLAYER CARD */
+.card{
+  background:#121a2e;
+  border-radius:16px;
+  padding:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.35);
+}
+
+/* TIME */
+.timebar{
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  opacity:0.8;
+  margin-bottom:8px;
+}
+
+/* WAVE */
+.wave-wrap{
+  position:relative;
+  border-radius:12px;
+  overflow:hidden;
+  background:#0e1526;
+  padding:6px;
+}
+
+#waveform{
+  border-radius:10px;
+  overflow:hidden;
+}
+
+/* LOOP ZONE */
+#loopZone{
+  position:absolute;
+  top:6px;
+  bottom:6px;
+  background:rgba(43,111,255,0.25);
+  display:none;
+}
+
+/* MARKERS */
+.marker{
+  position:absolute;
+  top:6px;
+  transform:translateX(-50%);
+  font-size:11px;
+  padding:4px 6px;
+  border-radius:6px;
+  cursor:grab;
+  user-select:none;
+  z-index:5;
+}
+
+#markA{background:#16a34a;}
+#markB{background:#dc2626;}
+
+/* CONTROL BAR */
+.controls{
+  display:flex;
+  gap:6px;
+  margin-top:10px;
+}
+
+.controls button{
+  flex:1;
+  padding:12px;
+  border:none;
+  border-radius:12px;
+  background:#1e2a44;
+  color:white;
+  cursor:pointer;
+  font-weight:500;
+}
+
+/* SPEED */
+.speed{
+  margin-top:10px;
+  background:#0f1627;
+  padding:10px;
+  border-radius:12px;
+}
+
+.speed-header{
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  margin-bottom:6px;
+}
+
+#speedVal{
+  width:70px;
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+
+/* PLAYLIST */
+.library{
+  background:#121a2e;
+  border-radius:16px;
+  padding:12px;
+}
+
+.track{
+  padding:10px;
+  margin-top:6px;
+  background:#1b2742;
+  border-radius:10px;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+.track:hover{
+  background:#24365c;
+}
+
+.track.active{
+  background:#2b6fff;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="app">
+
+  <div class="header">
+    <h2>🎧 DJ Player</h2>
+    <div style="font-size:12px;opacity:0.7;">v1.0</div>
+  </div>
+
+  <!-- PLAYER -->
+
+  <div class="card">
+
+```
+<div class="timebar">
+  <div id="currentTime">0:00</div>
+  <div id="totalTime">0:00</div>
+</div>
+
+<div class="wave-wrap">
+  <div id="waveform"></div>
+  <div id="loopZone"></div>
+  <div id="markA" class="marker" style="display:none;">A</div>
+  <div id="markB" class="marker" style="display:none;">B</div>
+</div>
+
+<div class="controls">
+  <button onclick="togglePlay()" id="playBtn">Play</button>
+  <button onclick="setA()" id="btnA">A</button>
+  <button onclick="setB()" id="btnB">B</button>
+  <button onclick="toggleLoop()" id="loopBtn">Loop OFF</button>
+</div>
+
+<div class="speed">
+  <div class="speed-header">
+    <span>Snelheid</span>
+    <span id="speedVal">100%</span>
+  </div>
+  <input type="range" min="50" max="200" value="100" oninput="setSpeed(this.value)">
+</div>
+```
+
+  </div>
+
+  <!-- LIBRARY -->
+
+  <div class="library">
+    <div style="font-size:12px;opacity:0.7;margin-bottom:6px;">Library</div>
+    <div id="list"></div>
+  </div>
+
+</div>
+
+<script>
+
+const tracks=[
+  { name: "Bailando la soca", file: "Bailando_la_soca.mp3" },
+  { name: "Moving sounds", file: "Moving_sounds.mp3" },
+  { name: "Smoothavana", file: "Smoothavana.mp3" },
+  { name: "Walk like an Egyptian", file: "Walk_like_an_Egyptian.mp3" },
+  { name: "Windows of the maloca", file: "Windows.mp3" },
+];
+
+let current=0;
+let loopA=null, loopB=null, loopOn=false;
+
+const wavesurfer=WaveSurfer.create({
+  container:"#waveform",
+  waveColor:"#4f7cff",
+  progressColor:"#2b6fff",
+  height:90,
+  normalize:true
+});
+
+/* PLAYLIST */
+const list=document.getElementById("list");
+
+tracks.forEach((t,i)=>{
+  const div=document.createElement("div");
+  div.className="track";
+  div.innerText=t.name;
+  div.onclick=()=>loadTrack(i);
+  list.appendChild(div);
+});
+
+function updatePlaylist(){
+  document.querySelectorAll(".track").forEach((el,i)=>{
+    el.classList.toggle("active",i===current);
+  });
+}
+
+/* LOAD */
+function loadTrack(i){
+  current=i;
+  wavesurfer.load(tracks[i].file);
+
+  resetLoop();
+  updatePlaylist();
+}
+
+/* RESET */
+function resetLoop(){
+  loopA=null;
+  loopB=null;
+  loopOn=false;
+
+  loopBtn.innerText="Loop OFF";
+  markA.style.display="none";
+  markB.style.display="none";
+  loopZone.style.display="none";
+
+  updateButtons();
+}
+
+/* PLAY */
+function togglePlay(){
+  wavesurfer.playPause();
+  playBtn.innerText=wavesurfer.isPlaying()?"Pause":"Play";
+}
+
+/* SPEED */
+function setSpeed(v){
+  wavesurfer.setPlaybackRate(v/100);
+  speedVal.innerText=v+"%";
+}
+
+/* TIME */
+function format(t){
+  const m=Math.floor(t/60);
+  const s=Math.floor(t%60);
+  return m+":"+s.toString().padStart(2,'0');
+}
+
+wavesurfer.on("audioprocess",()=>{
+  currentTime.innerText=format(wavesurfer.getCurrentTime());
+});
+
+wavesurfer.on("ready",()=>{
+  totalTime.innerText=format(wavesurfer.getDuration());
+});
+
+/* A / B */
+function setA(){
+  loopA=(loopA!==null)?null:wavesurfer.getCurrentTime();
+  updateButtons();
+  updateVisuals();
+}
+
+function setB(){
+  loopB=(loopB!==null)?null:wavesurfer.getCurrentTime();
+  updateButtons();
+  updateVisuals();
+}
+
+/* LOOP */
+function toggleLoop(){
+  if(loopA==null||loopB==null)return;
+  loopOn=!loopOn;
+  loopBtn.innerText="Loop "+(loopOn?"ON":"OFF");
+}
+
+/* BUTTONS */
+function updateButtons(){
+  btnA.innerText="A";
+  btnB.innerText="B";
+}
+
+/* VISUALS */
+function updateVisuals(){
+  const dur=wavesurfer.getDuration();
+  if(!dur)return;
+
+  let a=loopA,b=loopB;
+  if(a&&b&&a>b)[a,b]=[b,a];
+
+  if(a!=null){
+    markA.style.display="block";
+    markA.style.left=(a/dur*100)+"%";
+  } else markA.style.display="none";
+
+  if(b!=null){
+    markB.style.display="block";
+    markB.style.left=(b/dur*100)+"%";
+  } else markB.style.display="none";
+
+  if(a!=null&&b!=null){
+    loopZone.style.display="block";
+    loopZone.style.left=(a/dur*100)+"%";
+    loopZone.style.width=((b-a)/dur*100)+"%";
+  } else loopZone.style.display="none";
+}
+
+/* LOOP ENGINE */
+wavesurfer.on("audioprocess",()=>{
+  if(loopOn&&loopA!=null&&loopB!=null){
+    let a=loopA,b=loopB;
+    if(a>b)[a,b]=[b,a];
+
+    if(wavesurfer.getCurrentTime()>=b){
+      wavesurfer.setTime(a);
+    }
+  }
+});
+
+/* INIT */
+loadTrack(0);
+
+</script>
+
+</body>
+</html>
