@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pro MP3 Player</title>
+
+<script src="https://unpkg.com/wavesurfer.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:system-ui;
+  background:#0b0f19;
+  color:white;
+  display:flex;
+  justify-content:center;
+  padding:20px;
+}
+
+.box{
+  width:100%;
+  max-width:420px;
+  background:#151c2e;
+  padding:15px;
+  border-radius:16px;
+}
+
+h2{text-align:center;}
+
+.timebar{
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  opacity:0.8;
+  margin-bottom:6px;
+}
+
+/* WAVE WRAP */
+.wave-wrap{
+  position:relative;
+  padding-top:28px;
+  padding-bottom:28px;
+}
+
+#waveform{
+  border-radius:10px;
+  overflow:hidden;
+}
+
+/* LOOP ZONE */
+#loopZone{
+  position:absolute;
+  top:0;
+  height:100%;
+  background:rgba(43,111,255,0.25);
+  display:none;
+  z-index:1;
+}
+
+/* CHAPTERS (boven) */
+#chapters{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  z-index:5;
+}
+
+.chapter{
+  position:absolute;
+  transform:translate(-50%, -100%);
+  font-size:11px;
+  padding:4px 7px;
+  border-radius:6px;
+  cursor:pointer;
+
+  /* 🔵 nieuw design */
+  background:#2b6fff;
+  color:white;
+  font-weight:600;
+
+  text-align:center;
+  white-space:nowrap;
+}
+
+/* A/B markers (onder) */
+#abMarkers .marker{
+  position:absolute;
+  transform:translateX(-50%);
+  bottom:-5px;
+  font-size:11px;
+  padding:4px 6px;
+  border-radius:6px;
+  cursor:pointer;
+  z-index:10;
+  text-align:center;
+}
+
+#markA{background:#16a34a;}
+#markB{background:#dc2626;}
+
+/* lijn onder markers */
+.marker::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  width:2px;
+  height:70px;
+  background:rgba(255,255,255,0.2);
+  top:-70px;
+}
+
+/* CONTROLS */
+.controls-row{
+  display:flex;
+  gap:6px;
+  margin-top:10px;
+}
+
+.controls-row button{
+  flex:1;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  background:#24304f;
+  color:white;
+  cursor:pointer;
+}
+
+.speed{margin-top:12px;}
+
+.speed-header{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:6px;
+}
+
+#speedVal{
+  width:70px;
+  text-align:right;
+}
+
+.speed input{width:100%;}
+
+.track{
+  padding:10px;
+  margin-top:6px;
+  background:#1f2a44;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.track.active{
+  background:#2b6fff;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="box">
+  <h2>🎧 Pro MP3 Player</h2>
+
+  <div class="timebar">
+    <div id="currentTime">0:00</div>
+    <div id="totalTime">0:00</div>
+  </div>
+
+  <div class="wave-wrap">
+    <div id="waveform"></div>
+    <div id="loopZone"></div>
+
+```
+<div id="chapters"></div>
+
+<div id="abMarkers">
+  <div id="markA" class="marker" style="display:none;">A</div>
+  <div id="markB" class="marker" style="display:none;">B</div>
+</div>
+```
+
+  </div>
+
+  <div class="controls-row">
+    <button onclick="togglePlay()" id="playBtn">Play</button>
+    <button onclick="setA()" id="btnA">A -</button>
+    <button onclick="setB()" id="btnB">B -</button>
+  </div>
+
+  <div class="speed">
+    <div class="speed-header">
+      <span>Snelheid</span>
+      <span id="speedVal">100%</span>
+    </div>
+
+```
+<input type="range" min="50" max="200" value="100" oninput="setSpeed(this.value)">
+```
+
+  </div>
+
+  <div id="list"></div>
+</div>
+
+<script>
+const tracks=[
+  {
+    name: "Bailando la soca",
+    file: "Bailando.mp3",
+    chapters: [
+      {time:63,label:"A"},
+      {time:120,label:"19"}
+    ]
+  },
+  {
+    name: "Blinding Lights",
+    file: "Blinding.mp3",
+    chapters: [
+      {time:30,label:"Intro"},
+      {time:75,label:"Drop"}
+    ]
+  },
+  { name: "Moving sounds", file: "Moving.mp3" },
+  { name: "Rush hour samba", file: "Rush.mp3" },
+  { name: "Shift", file: "Shift.mp3" },
+  { name: "Smoothavana", file: "Smoothavana.mp3" },
+  { name: "Trinity", file: "Trinity.mp3" },
+  { name: "Walk like an Egyptian", file: "Walk.mp3" },
+  { name: "Windows of the maloca", file: "Windows.mp3" }
+];
+
+let current=0;
+let loopA=null, loopB=null;
+
+const wavesurfer=WaveSurfer.create({
+  container:"#waveform",
+  waveColor:"#4f7cff",
+  progressColor:"#2b6fff",
+  height:80,
+  normalize:true
+});
+
+/* playlist */
+const list=document.getElementById("list");
+
+tracks.forEach((t,i)=>{
+  const div=document.createElement("div");
+  div.className="track";
+  div.innerText=t.name;
+  div.onclick=()=>loadTrack(i);
+  list.appendChild(div);
+});
+
+function updatePlaylist(){
+  document.querySelectorAll(".track").forEach((el,i)=>{
+    el.classList.toggle("active",i===current);
+  });
+}
+
+/* hoofdstukken */
+function renderChapters(){
+  const container=document.getElementById("chapters");
+  container.innerHTML="";
+
+  const dur=wavesurfer.getDuration();
+  if(!dur) return;
+
+  const chapters=tracks[current].chapters;
+  if(!chapters) return;
+
+  chapters.forEach(ch=>{
+    const el=document.createElement("div");
+    el.className="chapter";
+    el.innerText=ch.label;
+
+    el.style.left=(ch.time/dur*100)+"%";
+
+    el.onclick=()=>{
+      wavesurfer.setTime(ch.time);
+    };
+
+    container.appendChild(el);
+  });
+}
+
+/* reset */
+function resetLoop(){
+  loopA=null;
+  loopB=null;
+
+  markA.style.display="none";
+  markB.style.display="none";
+  loopZone.style.display="none";
+
+  updateButtons();
+}
+
+/* load */
+function loadTrack(i){
+  current=i;
+  wavesurfer.load(tracks[i].file);
+
+  resetLoop();
+  updatePlaylist();
+
+  wavesurfer.once("ready",()=>{
+    wavesurfer.play();
+    playBtn.innerText="Pause";
+
+    totalTime.innerText=format(wavesurfer.getDuration());
+
+    renderChapters();
+  });
+}
+
+/* play */
+function togglePlay(){
+  wavesurfer.playPause();
+  playBtn.innerText=wavesurfer.isPlaying()?"Pause":"Play";
+}
+
+/* speed */
+function setSpeed(val){
+  wavesurfer.setPlaybackRate(val/100);
+  speedVal.innerText=val+"%";
+}
+
+/* time */
+function format(t){
+  if(t==null) return "-";
+  const m=Math.floor(t/60);
+  const s=Math.floor(t%60);
+  return m+":"+s.toString().padStart(2,'0');
+}
+
+wavesurfer.on("audioprocess",()=>{
+  currentTime.innerText=format(wavesurfer.getCurrentTime());
+});
+
+/* A/B */
+function setA(){
+  loopA = (loopA!==null)?null:wavesurfer.getCurrentTime();
+  updateButtons(); updateVisuals();
+}
+
+function setB(){
+  loopB = (loopB!==null)?null:wavesurfer.getCurrentTime();
+  updateButtons(); updateVisuals();
+}
+
+function updateButtons(){
+  btnA.innerText="A "+format(loopA);
+  btnB.innerText="B "+format(loopB);
+}
+
+function updateVisuals(){
+  const dur=wavesurfer.getDuration();
+  if(!dur)return;
+
+  let a=loopA,b=loopB;
+  if(a&&b&&a>b)[a,b]=[b,a];
+
+  if(a!=null){
+    markA.style.display="block";
+    markA.style.left=(a/dur*100)+"%";
+  } else markA.style.display="none";
+
+  if(b!=null){
+    markB.style.display="block";
+    markB.style.left=(b/dur*100)+"%";
+  } else markB.style.display="none";
+
+  if(a!=null&&b!=null){
+    loopZone.style.display="block";
+    loopZone.style.left=(a/dur*100)+"%";
+    loopZone.style.width=((b-a)/dur*100)+"%";
+  } else loopZone.style.display="none";
+}
+
+/* loop engine (automatisch) */
+wavesurfer.on("audioprocess",()=>{
+  if(loopA!=null && loopB!=null){
+    let a=loopA,b=loopB;
+    if(a>b)[a,b]=[b,a];
+
+    if(wavesurfer.getCurrentTime()>=b){
+      wavesurfer.setTime(a);
+    }
+  }
+});
+
+/* init */
+loadTrack(0);
+</script>
+
+</body>
+</html>
