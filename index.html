@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Next Level MP3 Player</title>
+
+<script src="https://unpkg.com/wavesurfer.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:system-ui;
+  color:white;
+  display:flex;
+  justify-content:center;
+  padding:20px;
+  min-height:100vh;
+
+  background:
+    radial-gradient(circle at 20% 20%, #1b2a4a, transparent 40%),
+    radial-gradient(circle at 80% 30%, #1e3a8a, transparent 35%),
+    radial-gradient(circle at 50% 80%, #0b0f19, #0b0f19);
+}
+
+/* glow blobs */
+body::before,
+body::after{
+  content:"";
+  position:fixed;
+  width:300px;
+  height:300px;
+  border-radius:50%;
+  filter:blur(90px);
+  opacity:0.35;
+  z-index:-1;
+}
+
+body::before{
+  background:#2b6fff;
+  top:10%;
+  left:10%;
+}
+
+body::after{
+  background:#16a34a;
+  bottom:10%;
+  right:10%;
+}
+
+.box{
+  width:100%;
+  max-width:420px;
+
+  background:rgba(21,28,46,0.75);
+  backdrop-filter: blur(14px);
+
+  padding:18px;
+  border-radius:18px;
+
+  box-shadow:0 20px 60px rgba(0,0,0,0.45);
+  border:1px solid rgba(255,255,255,0.08);
+}
+
+h2{
+  text-align:center;
+  letter-spacing:0.5px;
+}
+
+.timebar{
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  opacity:0.8;
+  margin-bottom:6px;
+}
+
+/* wave */
+.wave-wrap{
+  position:relative;
+  padding-top:28px;
+  padding-bottom:28px;
+}
+
+#waveform{
+  border-radius:12px;
+  overflow:hidden;
+  box-shadow:0 10px 25px rgba(0,0,0,0.35);
+}
+
+/* loop zone */
+#loopZone{
+  position:absolute;
+  top:0;
+  height:100%;
+  width:0;
+  background:rgba(43,111,255,0.18);
+  border-radius:10px;
+  display:none;
+}
+
+/* chapters */
+#chapters{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  z-index:5;
+}
+
+.chapter{
+  position:absolute;
+  transform:translate(-50%, -100%);
+  font-size:11px;
+  padding:4px 8px;
+  border-radius:8px;
+  cursor:pointer;
+
+  background:#2b6fff;
+  color:white;
+  font-weight:600;
+
+  box-shadow:0 6px 14px rgba(0,0,0,0.25);
+  transition:0.2s;
+}
+
+.chapter:hover{
+  transform:translate(-50%, -110%) scale(1.05);
+  background:#3b82f6;
+}
+
+/* A/B markers */
+#abMarkers .marker{
+  position:absolute;
+  transform:translateX(-50%);
+  bottom:-6px;
+  font-size:11px;
+  padding:4px 8px;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+
+  box-shadow:0 6px 14px rgba(0,0,0,0.25);
+  transition:0.2s;
+}
+
+#abMarkers .marker:hover{
+  transform:translateX(-50%) scale(1.05);
+}
+
+#markA{background:#16a34a;}
+#markB{background:#dc2626;}
+
+/* controls */
+.controls-row{
+  display:flex;
+  gap:6px;
+  margin-top:10px;
+}
+
+.controls-row button{
+  flex:1;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  background:#24304f;
+  color:white;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+.controls-row button:hover{
+  transform:scale(1.03);
+  background:#2b6fff;
+}
+
+/* speed */
+.speed{margin-top:12px;}
+
+.speed-header{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:6px;
+}
+
+#speedVal{
+  width:70px;
+  text-align:right;
+}
+
+.speed input{width:100%;}
+
+/* playlist */
+.track{
+  padding:10px;
+  margin-top:6px;
+  background:#1f2a44;
+  border-radius:8px;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+.track:hover{
+  transform:translateX(3px);
+  background:#2a3759;
+}
+
+.track.active{
+  background:#2b6fff;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="box">
+  <h2>🎧 Next Level Player</h2>
+
+  <div class="timebar">
+    <div id="currentTime">0:00</div>
+    <div id="totalTime">0:00</div>
+  </div>
+
+  <div class="wave-wrap">
+    <div id="waveform"></div>
+    <div id="loopZone"></div>
+    <div id="chapters"></div>
+
+```
+<div id="abMarkers">
+  <div id="markA" class="marker" style="display:none;">A</div>
+  <div id="markB" class="marker" style="display:none;">B</div>
+</div>
+```
+
+  </div>
+
+  <div class="controls-row">
+    <button onclick="togglePlay()" id="playBtn">Play</button>
+    <button onclick="setA()" id="btnA">A -</button>
+    <button onclick="setB()" id="btnB">B -</button>
+  </div>
+
+  <div class="speed">
+    <div class="speed-header">
+      <span>Snelheid</span>
+      <span id="speedVal">100%</span>
+    </div>
+    <input type="range" min="50" max="200" value="100" oninput="setSpeed(this.value)">
+  </div>
+
+  <div id="list"></div>
+</div>
+
+<script>
+const tracks=[
+  {
+    name:"Bailando la soca",
+    file:"Bailando.mp3",
+    chapters:[{time:63,label:"A"},{time:120,label:"19"}]
+  },
+  {
+    name:"Blinding Lights",
+    file:"Blinding.mp3",
+    chapters:[{time:30,label:"Intro"},{time:75,label:"Drop"}]
+  }
+];
+
+let current=0;
+let loopA=null, loopB=null;
+
+const wavesurfer=WaveSurfer.create({
+  container:"#waveform",
+  waveColor:"#4f7cff",
+  progressColor:"#2b6fff",
+  height:80,
+  normalize:true
+});
+
+/* playlist */
+const list=document.getElementById("list");
+
+tracks.forEach((t,i)=>{
+  const div=document.createElement("div");
+  div.className="track";
+  div.innerText=t.name;
+  div.onclick=()=>loadTrack(i);
+  list.appendChild(div);
+});
+
+function updatePlaylist(){
+  document.querySelectorAll(".track").forEach((el,i)=>{
+    el.classList.toggle("active",i===current);
+  });
+}
+
+/* chapters */
+function renderChapters(){
+  const container=document.getElementById("chapters");
+  container.innerHTML="";
+  const dur=wavesurfer.getDuration();
+  if(!dur) return;
+
+  const chapters=tracks[current].chapters;
+  if(!chapters) return;
+
+  chapters.forEach(ch=>{
+    const el=document.createElement("div");
+    el.className="chapter";
+    el.innerText=ch.label;
+    el.style.left=(ch.time/dur*100)+"%";
+    el.onclick=()=>wavesurfer.setTime(ch.time);
+    container.appendChild(el);
+  });
+}
+
+/* load */
+function loadTrack(i){
+  current=i;
+  wavesurfer.load(tracks[i].file);
+
+  loopA=null;
+  loopB=null;
+
+  updatePlaylist();
+
+  wavesurfer.once("ready",()=>{
+    wavesurfer.play();
+    totalTime.innerText=format(wavesurfer.getDuration());
+    renderChapters();
+  });
+}
+
+/* play */
+function togglePlay(){
+  wavesurfer.playPause();
+}
+
+/* speed */
+function setSpeed(v){
+  wavesurfer.setPlaybackRate(v/100);
+  speedVal.innerText=v+"%";
+}
+
+/* time */
+function format(t){
+  const m=Math.floor(t/60);
+  const s=Math.floor(t%60);
+  return m+":"+s.toString().padStart(2,'0');
+}
+
+wavesurfer.on("audioprocess",()=>{
+  currentTime.innerText=format(wavesurfer.getCurrentTime());
+
+  /* loop */
+  if(loopA!=null && loopB!=null){
+    let a=loopA,b=loopB;
+    if(a>b)[a,b]=[b,a];
+    if(wavesurfer.getCurrentTime()>=b){
+      wavesurfer.setTime(a);
+    }
+  }
+});
+
+/* A/B */
+function setA(){
+  loopA = (loopA!==null)?null:wavesurfer.getCurrentTime();
+  updateButtons();
+  updateVisuals();
+}
+
+function setB(){
+  loopB = (loopB!==null)?null:wavesurfer.getCurrentTime();
+  updateButtons();
+  updateVisuals();
+}
+
+function updateButtons(){
+  btnA.innerText="A "+(loopA?format(loopA):"-");
+  btnB.innerText="B "+(loopB?format(loopB):"-");
+}
+
+function updateVisuals(){
+  const dur=wavesurfer.getDuration();
+  if(!dur)return;
+
+  let a=loopA,b=loopB;
+  if(a&&b&&a>b)[a,b]=[b,a];
+
+  markA.style.display=a?"block":"none";
+  markB.style.display=b?"block":"none";
+
+  if(a) markA.style.left=(a/dur*100)+"%";
+  if(b) markB.style.left=(b/dur*100)+"%";
+
+  if(a&&b){
+    loopZone.style.display="block";
+    loopZone.style.left=(a/dur*100)+"%";
+    loopZone.style.width=((b-a)/dur*100)+"%";
+  } else loopZone.style.display="none";
+}
+
+/* init */
+loadTrack(0);
+</script>
+
+</body>
+</html>
