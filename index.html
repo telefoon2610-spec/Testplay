@@ -3,125 +3,59 @@
 <head>
 <meta charset="UTF-8">
 <title>Scorebord L vs M</title>
-
 <style>
-body {
-  font-family: 'Segoe UI', Arial, sans-serif;
-  background: #f5f7fb;
-  max-width: 900px;
-  margin: 20px auto;
-  color: #333;
-}
-
-/* 👇 LOS van body */
-.form-group {
-  margin-bottom: 10px;
-}
-
-h1 {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.card {
-  background: white;
-  border: none;
-  padding: 16px;
-  margin-top: 15px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
-
-select, input {
-  padding: 8px;
-  margin: 4px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-
-button {
-  padding: 8px 12px;
-  margin: 4px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  background: #4a6cf7;
-  color: white;
-  transition: 0.2s;
-}
-
-button:hover {
-  background: #3a55d1;
-}
-
-.row {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid #eee;
-  align-items: center;
-  gap: 10px;
-}
-
-.delete-btn {
-  background: #ff4d4d;
-}
-
-.delete-btn:hover {
-  background: #d93636;
-}
-
-.toggle {
-  background: #555;
-}
-
-.muted {
-  color: gray;
-  font-size: 12px; 
-
-
-  }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f7fb; max-width: 900px; margin: 20px auto; color: #333; }
+h1 { text-align:center; margin-bottom:20px; }
+.card { background:white; border:none; padding:16px; margin-top:15px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); }
+select, input { padding:8px; margin:4px; border-radius:6px; border:1px solid #ccc; }
+button { padding:8px 12px; margin:4px; border-radius:6px; border:none; cursor:pointer; background:#4a6cf7; color:white; transition:0.2s; }
+button:hover { background:#3a55d1; }
+.row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee; align-items:center; gap:10px; }
+.delete-btn { background:#ff4d4d; } .delete-btn:hover { background:#d93636; }
+.toggle { background:#555; } .muted { color:gray; font-size:12px; }
 </style>
 </head>
-
 <body>
 
 <h1>Scorebord L vs M</h1>
 
-<!-- ➕ GAME INPUT -->
+<!-- LOGIN -->
+<div class="card">
+  <h3>Login</h3>
+  <input type="email" id="email" placeholder="E-mail">
+  <input type="password" id="password" placeholder="Wachtwoord">
+  <button id="loginBtn">Login</button>
+  <div id="userInfo" style="margin-top:10px;">Niet ingelogd</div>
+</div>
+
+<!-- GAME INPUT -->
 <div class="card">
   <h3>Nieuwe game</h3>
-
   <select id="competitionSelect"></select><br>
-
   <select id="gameSelect"></select>
-
   <select id="winner">
     <option value="L">L wint</option>
     <option value="M">M wint</option>
     <option value="Gelijk">Gelijk</option>
   </select>
-
   <input type="number" id="scoreL" placeholder="Score L">
   <input type="number" id="scoreM" placeholder="Score M">
-
   <button onclick="addGame()">Opslaan</button>
 </div>
 
-<!-- 📊 OVERZICHT -->
+<!-- DASHBOARD -->
 <div id="dashboard"></div>
 
-<!-- 📜 HISTORY -->
+<!-- HISTORY -->
 <div class="card">
-  <h3>
-    Geschiedenis
+  <h3>Geschiedenis
     <button onclick="setHistoryMode('active')">Actief</button>
     <button onclick="setHistoryMode('archive')">Archief</button>
   </h3>
   <div id="history"></div>
 </div>
 
-<!-- ⚙️ BEHEER -->
+<!-- ADMIN -->
 <div class="card">
   <button class="toggle" onclick="toggleAdmin()">Spellen beheren ⚙️</button>
   <button class="toggle" onclick="toggleCompetitionAdmin()">Competities beheren 🏆</button>
@@ -134,443 +68,128 @@ button:hover {
 
   <div id="competitionPanel" style="display:none;">
     <input type="text" id="newCompetition" placeholder="Naam competitie">
-
     <select id="competitionType">
       <option value="year">Jaar competitie</option>
       <option value="vacation">Vacation toernooi</option>
     </select>
-
     <button onclick="addCompetition()">Toevoegen</button>
     <div id="competitionList"></div>
   </div>
 </div>
 
-<script>
-
-// DATA
-let games = JSON.parse(localStorage.getItem("games") || JSON.stringify([
-  "Clever 1","Clever 2","Clever 3","Clever 4","Clever D",
-  "Keer op keer 1","Keer op keer 2","Keer op keer 3","Keer op keer 4",
-  "Locus","Wingspan","Wingspan 2v2"
-]));
-
-let results = []; // Wordt straks geladen vanuit Firestore
-let competitions = JSON.parse(localStorage.getItem("competitions") || "[]");
-
-let historyMode = "active";
-
-// RENDER GAMES
-function renderGames() {
-  games.sort((a,b)=>a.localeCompare(b));
-
-  gameSelect.innerHTML = games.map(g =>
-    `<option value="${g}">${g}</option>`
-  ).join("");
-
-  document.getElementById("gameList").innerHTML =
-    games.map(g => `
-      <div class="row">
-        <span>${g}</span>
-        <button class="delete-btn" onclick="deleteGame('${g}')">🗑</button>
-      </div>
-    `).join("");
-
-  localStorage.setItem("games", JSON.stringify(games));
-}
-
-// RENDER COMPETITIES
-function renderCompetitions() {
-  const active = competitions.filter(c => c.active && !c.finished);
-
-  document.getElementById("competitionSelect").innerHTML =
-    active.length === 0
-      ? `<option value="">Geen actieve competitie</option>`
-      : active.map(c =>
-          `<option value="${c.id}">${c.name}</option>`
-        ).join("");
-
-  localStorage.setItem("competitions", JSON.stringify(competitions));
-}
-
-// COMPETITIE LIJST
-function renderCompetitionList() {
-  document.getElementById("competitionList").innerHTML =
-    competitions.map(c => `
-      <div class="row">
-        <span>${c.name} (${c.type}) ${c.finished ? '✅' : ''}</span>
-        <button onclick="finishCompetition(${c.id})">Sluit af</button>
-        <button onclick="deleteCompetition(${c.id})" class="delete-btn">🗑</button>
-      </div>
-    `).join("");
-}
-
-// NIEUW SPEL
-function addNewGame() {
-  const g = document.getElementById("newGame").value.trim();
-  if (!g) return;
-
-  if (!games.includes(g)) {
-    games.push(g);
-    renderGames();
-  }
-
-  document.getElementById("newGame").value = "";
-}
-
-// VERWIJDER SPEL
-function deleteGame(name) {
-  if (!confirm("Spel verwijderen?")) return;
-
-  games = games.filter(g => g !== name);
-  results = results.filter(r => r.game !== name);
-
-  localStorage.setItem("results", JSON.stringify(results));
-
-  renderGames();
-  render();
-}
-
-// NIEUWE COMPETITIE
-function addCompetition() {
-  const name = document.getElementById("newCompetition").value.trim();
-  const type = document.getElementById("competitionType").value;
-
-  if (!name) return;
-
-  competitions.push({
-    id: Date.now(),
-    name,
-    type,
-    active: true,
-    finished: false
-  });
-
-  document.getElementById("newCompetition").value = "";
-
-  renderCompetitions();
-  renderCompetitionList();
-}
-
-// AFSLUITEN
-function finishCompetition(id) {
-  const comp = competitions.find(c => c.id === id);
-  if (!comp) return;
-
-  comp.finished = true;
-  comp.active = false;
-
-  localStorage.setItem("competitions", JSON.stringify(competitions));
-
-  renderCompetitions();
-  renderCompetitionList();
-  render();
-}
-
-// VERWIJDER COMPETITIE
-function deleteCompetition(id) {
-  if (!confirm("Competitie verwijderen?")) return;
-
-  competitions = competitions.filter(c => c.id !== id);
-  results = results.filter(r => Number(r.competitionId) !== id);
-
-  localStorage.setItem("competitions", JSON.stringify(competitions));
-  localStorage.setItem("results", JSON.stringify(results));
-
-  renderCompetitions();
-  renderCompetitionList();
-  render();
-}
-
-// GAME OPSLAAN
-function addGame() {
-  const competitionId = document.getElementById("competitionSelect").value;
-
-  results.push({
-    game: gameSelect.value,
-    winner: document.getElementById("winner").value,
-    scoreL: Number(document.getElementById("scoreL").value || 0),
-    scoreM: Number(document.getElementById("scoreM").value || 0),
-    competitionId
-  });
-
-document.getElementById("scoreL").value = "";
-document.getElementById("scoreM").value = "";
-
-  localStorage.setItem("results", JSON.stringify(results));
-  render();
-}
-
-// DELETE MATCH
-function deleteMatch(index) {
-  results.splice(index,1);
-  localStorage.setItem("results", JSON.stringify(results));
-  render();
-}
-
-// FILTERS
-function getActiveResultsByType(type) {
-  const activeIds = competitions
-    .filter(c => c.type === type && c.active && !c.finished)
-    .map(c => c.id);
-
-  return results.filter(r => activeIds.includes(Number(r.competitionId)));
-}
-
-function getAllActiveResults() {
-  const activeIds = competitions
-    .filter(c => c.active && !c.finished)
-    .map(c => c.id);
-
-  return results.filter(r => activeIds.includes(Number(r.competitionId)));
-}
-
-// PUNTEN
-function calculatePoints() {
-
-  let yearPoints = { L:0, M:0 };
-  let vacationPoints = { L:0, M:0 };
-
-  competitions.filter(c => c.finished).forEach(c => {
-
-    let L=0, M=0;
-
-    results
-      .filter(r => r.competitionId == c.id)
-      .forEach(r => {
-        if(r.winner==="L") L++;
-        if(r.winner==="M") M++;
-      });
-
-    if (L === M) return;
-
-    const winner = L > M ? "L" : "M";
-
-    if (c.type === "year") yearPoints[winner]++;
-    if (c.type === "vacation") vacationPoints[winner]++;
-  });
-
-  return { yearPoints, vacationPoints };
-}
-
-// HISTORY MODE
-function setHistoryMode(mode) {
-  historyMode = mode;
-  render();
-}
-
-// RENDER
-function getActiveCompetitionName(type) {
-  const comp = competitions.find(c => c.type === type && c.active && !c.finished);
-  return comp ? comp.name : (type === "year" ? "Jaar competitie" : "Vacation");
-}
-function render() {
-
-  const yearResults = getActiveResultsByType("year");
-  const vacationResults = getActiveResultsByType("vacation");
-
-  function calc(list) {
-    let L=0, M=0, D=0;
-
-    list.forEach(r=>{
-      if(r.winner==="L") L++;
-      else if(r.winner==="M") M++;
-      else D++;
-    });
-
-    let leader = "🤝 Gelijk";
-    if (L > M) leader = "🔥 L staat voor";
-    else if (M > L) leader = "🔥 M staat voor";
-
-    return { total:list.length, L, M, D, leader };
-  }
-
-  const year = calc(yearResults);
-  const vacation = calc(vacationResults);
-  const { yearPoints, vacationPoints } = calculatePoints();
-
-document.getElementById("dashboard").innerHTML = `
-  <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
-    
-    <div class="card">
-      <h3>${getActiveCompetitionName("year")}</h3>
-      <div class="row"><span>Totaal</span><b>${year.total}</b></div>
-      <div class="row"><span>L</span><b>${year.L}</b></div>
-      <div class="row"><span>M</span><b>${year.M}</b></div>
-      <div class="row"><span>Gelijk</span><b>${year.D}</b></div>
-      <div class="row"><b>${year.leader}</b></div>
-    </div>
-
-    <div class="card">
-      <h3>${getActiveCompetitionName("vacation")}</h3>
-      <div class="row"><span>Totaal</span><b>${vacation.total}</b></div>
-      <div class="row"><span>L</span><b>${vacation.L}</b></div>
-      <div class="row"><span>M</span><b>${vacation.M}</b></div>
-      <div class="row"><span>Gelijk</span><b>${vacation.D}</b></div>
-      <div class="row"><b>${vacation.leader}</b></div>
-    </div>
-
-  </div>
-
-  <div class="card">
-    <h3>Punten</h3>
-    <div class="row"><span>Jaar L</span><b>${yearPoints.L}</b></div>
-    <div class="row"><span>Jaar M</span><b>${yearPoints.M}</b></div>
-    <div class="row"><span>Vacation L</span><b>${vacationPoints.L}</b></div>
-    <div class="row"><span>Vacation M</span><b>${vacationPoints.M}</b></div>
-  </div>
-`;
-
-  let html = "";
-
-  if (historyMode === "active") {
-
-    const activeResults = getAllActiveResults();
-
-    html = activeResults.length === 0
-      ? "<div class='muted'>Nog geen actieve games</div>"
-      : activeResults.map(r=>{
-          const index = results.indexOf(r);
-          return `
-            <div class="row">
-              <div style="flex:2">${r.game}</div>
-              <div style="flex:2;text-align:center;font-weight:bold">
-              <span style="color:#4a6cf7">L ${r.scoreL}</span>
-               -
-              <span style="color:#ff4d4d">M ${r.scoreM}</span>
-              </div>
-              <div style="flex:1;text-align:right">${r.winner}</div>
-              <button class="delete-btn" onclick="deleteMatch(${index})">🗑</button>
-            </div>
-          `;
-        }).join("");
-
-  } else {
-
-    const finishedCompetitions = competitions.filter(c => c.finished);
-
-    if (finishedCompetitions.length === 0) {
-      html = "<div class='muted'>Geen archief beschikbaar</div>";
-    } else {
-
-      html = finishedCompetitions.map(c => {
-
-        const compResults = results.filter(r => Number(r.competitionId) === c.id);
-
-        if (compResults.length === 0) return "";
-
-        return `
-          <div class="card">
-            <h4>${c.name}</h4>
-            ${compResults.map(r => `
-              <div class="row">
-                <div style="flex:2">${r.game}</div>
-                <div style="flex:2;text-align:center;font-weight:bold">
-                <span style="color:#4a6cf7">L ${r.scoreL}</span>
-                 -
-                 <span style="color:#ff4d4d">M ${r.scoreM}</span>
-                 </div>
-                <div style="flex:1;text-align:right">${r.winner}</div>
-              </div>
-            `).join("")}
-          </div>
-        `;
-      }).join("");
-    }
-  }
-
-  document.getElementById("history").innerHTML = html;
-}
-
-// TOGGLES
-function toggleAdmin() {
-  const p = document.getElementById("adminPanel");
-  p.style.display = (p.style.display === "none") ? "block" : "none";
-}
-
-function toggleCompetitionAdmin() {
-  const p = document.getElementById("competitionPanel");
-  p.style.display = (p.style.display === "none") ? "block" : "none";
-}
-
-// INIT
-renderGames();
-renderCompetitions();
-renderCompetitionList();
-render();
-
+<!-- FIREBASE SCRIPT -->
 <script type="module">
 
-// ================= FIREBASE =================
+// ====== FIREBASE IMPORTS ======
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { 
-  getAuth, 
-  signInWithEmailAndPassword,
-  onAuthStateChanged 
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  orderBy
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-
-// 🔥 JOUW FIREBASE CONFIG
+// ====== FIREBASE CONFIG ======
 const firebaseConfig = {
-  apiKey: "...",
-  authDomain: "...",
-  projectId: "...",
-  storageBucket: "...",
-  messagingSenderId: "...",
-  appId: "..."
+  apiKey: "AIzaSyCiBTxLDiIy7LcF0kxJFt54OdgOfu9xHI8",
+  authDomain: "scorebord-lm.firebaseapp.com",
+  projectId: "scorebord-lm",
+  storageBucket: "scorebord-lm.firebasestorage.app",
+  messagingSenderId: "806422872262",
+  appId: "1:806422872262:web:06e04d7aae8edb1d1e17c7"
 };
 
-// 🔹 Firebase Initialisatie
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// ================= LOGIN KNOP =================
+// ====== DATA ======
+let games = ["Clever 1","Clever 2","Clever 3"];
+let competitions = [];
+let results = [];
+let historyMode = "active";
+
+// ====== AUTH ======
 document.getElementById("loginBtn").onclick = async () => {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
-
   try {
     await signInWithEmailAndPassword(auth, email, password);
-    alert("Succesvol ingelogd!");
-  } catch (e) {
-    alert("Fout bij inloggen: " + e.message);
+  } catch(e) {
+    alert("Fout bij login: " + e.message);
   }
 };
 
-// ================= INLOG STATUS CHECK =================
-onAuthStateChanged(auth, (user) => {
-  if (user) {
+onAuthStateChanged(auth, user => {
+  if(user) {
     document.getElementById("userInfo").innerText = "Ingelogd als: " + user.email;
-    loadResults(); // hier laden we de scores
+    loadResults();
   } else {
     document.getElementById("userInfo").innerText = "Niet ingelogd";
-    results = [];
-    render();
   }
 });
 
-// ================= FIRESTORE RESULTS LADEN =================
-let results = [];
-
+// ====== FIRESTORE LOAD ======
 async function loadResults() {
   const q = query(collection(db, "results"), orderBy("createdAt"));
   const snap = await getDocs(q);
-
-  results = snap.docs.map(doc => doc.data());
+  results = snap.docs.map(d => d.data());
   render();
 }
 
-// ... hier komt daarna jouw bestaande game / render code
+// ====== SAVE GAME ======
+async function addGame() {
+  const user = auth.currentUser;
+  if(!user) return alert("Je moet inloggen");
 
-</script>
+  const competitionId = document.getElementById("competitionSelect").value;
+  try {
+    await addDoc(collection(db, "results"), {
+      game: document.getElementById("gameSelect").value,
+      winner: document.getElementById("winner").value,
+      scoreL: Number(document.getElementById("scoreL").value || 0),
+      scoreM: Number(document.getElementById("scoreM").value || 0),
+      competitionId,
+      createdBy: user.email,
+      createdAt: Date.now()
+    });
+    document.getElementById("scoreL").value = "";
+    document.getElementById("scoreM").value = "";
+    loadResults();
+  } catch(e) {
+    alert("Fout bij opslaan: " + e.message);
+  }
+}
 
-</body>
-</html>
+// ====== ADMIN FUNCTIONS (LOKAAL) ======
+function renderGames() {
+  document.getElementById("gameSelect").innerHTML = games.map(g => `<option>${g}</option>`).join("");
+  document.getElementById("gameList").innerHTML = games.map(g => `<div class="row"><span>${g}</span><button class="delete-btn" onclick="deleteGame('${g}')">🗑</button></div>`).join("");
+}
+function addNewGame() {
+  const g = document.getElementById("newGame").value.trim();
+  if(!g || games.includes(g)) return;
+  games.push(g);
+  document.getElementById("newGame").value = "";
+  renderGames();
+}
+function deleteGame(name) {
+  games = games.filter(g => g!==name);
+  renderGames();
+}
+
+function renderCompetitions() {
+  document.getElementById("competitionSelect").innerHTML = competitions.length===0? "<option>Geen actieve competitie</option>": competitions.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
+  document.getElementById("competitionList").innerHTML = competitions.map(c=>`<div class="row"><span>${c.name}</span></div>`).join("");
+}
+function addCompetition() {
+  const name = document.getElementById("newCompetition").value.trim();
+  if(!name) return;
+  competitions.push({id:Date.now(),name});
+  document.getElementById("newCompetition").value="";
+  renderCompetitions();
+}
+
+function toggleAdmin(){const p=document.getElementById("adminPanel");p.style.display=(p.style.display==="none")?"block":"none";}
+function toggleCompetitionAdmin(){const p=document.getElementById("competitionPanel");p.style.display=(p.style.display==="none")?"block":"none";}
+
+// ====== RENDER ======
+function render() {
+  // Dashboard
+  const dashboard = document.getElement
