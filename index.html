@@ -2,430 +2,504 @@
 <html lang="nl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pro MP3 Player</title>
-
-<script src="https://unpkg.com/wavesurfer.js"></script>
+<title>Scorebord L vs M</title>
 
 <style>
-body{
-  margin:0;
-  font-family:system-ui;
-  background:#0b0f19;
-  color:white;
-  display:flex;
-  justify-content:center;
-  padding:20px;
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #f5f7fb;
+  max-width: 900px;
+  margin: 20px auto;
+  color: #333;
 }
 
-.box{
-  width:100%;
-  max-width:420px;
-  background:#151c2e;
-  padding:15px;
-  border-radius:16px;
+/* 👇 LOS van body */
+.form-group {
+  margin-bottom: 10px;
 }
 
-h2{text-align:center;}
-
-.timebar{
-  display:flex;
-  justify-content:space-between;
-  font-size:12px;
-  opacity:0.8;
-  margin-bottom:6px;
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
 }
 
-.wave-wrap{
-  position:relative;
-  padding:10px 0;
+.card {
+  background: white;
+  border: none;
+  padding: 16px;
+  margin-top: 15px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
-#waveform{
-  border-radius:10px;
-  overflow:hidden;
+select, input {
+  padding: 8px;
+  margin: 4px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
 }
 
-#loopZone{
-  position:absolute;
-  top:0;
-  height:80px;
-  background:rgba(43,111,255,0.25);
-  display:none;
-  z-index:1;
+button {
+  padding: 8px 12px;
+  margin: 4px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: #4a6cf7;
+  color: white;
+  transition: 0.2s;
 }
 
-#abMarkers .marker{
-  position:absolute;
-  transform:translateX(-50%);
-  bottom:-5px;
-  font-size:11px;
-  padding:4px 6px;
-  border-radius:6px;
-  cursor:pointer;
-  z-index:10;
+button:hover {
+  background: #3a55d1;
 }
 
-#markA{background:#16a34a;}
-#markB{background:#dc2626;}
-
-.chapter-box{
-  margin-top:12px;
-  background:#1f2a44;
-  border-radius:10px;
-  padding:10px;
+.row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+  align-items: center;
+  gap: 10px;
 }
 
-.chapter-title{
-  font-size:13px;
-  font-weight:700;
-  margin-bottom:8px;
+.delete-btn {
+  background: #ff4d4d;
 }
 
-.chapter-list{
-  display:flex;
-  flex-wrap:wrap;
-  gap:6px;
+.delete-btn:hover {
+  background: #d93636;
 }
 
-.chapter{
-  background:#2b6fff;
-  padding:6px 10px;
-  border-radius:8px;
-  font-size:12px;
-  cursor:pointer;
-  font-weight:700;
-  transition:0.2s;
+.toggle {
+  background: #555;
 }
 
-.chapter.active{
-  background:#16a34a;
-  transform:scale(1.1);
-}
+.muted {
+  color: gray;
+  font-size: 12px; 
 
-.controls-row{
-  display:flex;
-  gap:6px;
-  margin-top:10px;
-}
 
-.controls-row button{
-  flex:1;
-  padding:10px;
-  border:none;
-  border-radius:10px;
-  background:#24304f;
-  color:white;
-  cursor:pointer;
-}
-
-.speed{
-  margin-top:12px;
-}
-
-.speed-header{
-  display:flex;
-  justify-content:space-between;
-  margin-bottom:6px;
-}
-
-#speedVal{
-  width:70px;
-  text-align:right;
-}
-
-.speed input{width:100%;}
-
-.track{
-  padding:10px;
-  margin-top:6px;
-  background:#1f2a44;
-  border-radius:8px;
-  cursor:pointer;
-}
-
-.track.active{
-  background:#2b6fff;
-}
+  }
 </style>
 </head>
 
 <body>
 
-<div class="box">
-  <h2>🎧 MP3 Player</h2>
+<h1>Scorebord L vs M</h1>
 
-  <div class="timebar">
-    <div id="currentTime">0:00</div>
-    <div id="totalTime">0:00</div>
+<!-- ➕ GAME INPUT -->
+<div class="card">
+  <h3>Nieuwe game</h3>
+
+  <select id="competitionSelect"></select><br>
+
+  <select id="gameSelect"></select>
+
+  <select id="winner">
+    <option value="L">L wint</option>
+    <option value="M">M wint</option>
+    <option value="Gelijk">Gelijk</option>
+  </select>
+
+  <input type="number" id="scoreL" placeholder="Score L">
+  <input type="number" id="scoreM" placeholder="Score M">
+
+  <button onclick="addGame()">Opslaan</button>
+</div>
+
+<!-- 📊 OVERZICHT -->
+<div id="dashboard"></div>
+
+<!-- 📜 HISTORY -->
+<div class="card">
+  <h3>
+    Geschiedenis
+    <button onclick="setHistoryMode('active')">Actief</button>
+    <button onclick="setHistoryMode('archive')">Archief</button>
+  </h3>
+  <div id="history"></div>
+</div>
+
+<!-- ⚙️ BEHEER -->
+<div class="card">
+  <button class="toggle" onclick="toggleAdmin()">Spellen beheren ⚙️</button>
+  <button class="toggle" onclick="toggleCompetitionAdmin()">Competities beheren 🏆</button>
+
+  <div id="adminPanel" style="display:none;">
+    <input type="text" id="newGame" placeholder="Nieuw spel">
+    <button onclick="addNewGame()">Toevoegen</button>
+    <div id="gameList"></div>
   </div>
 
-  <div class="wave-wrap">
-    <div id="waveform"></div>
-    <div id="loopZone"></div>
+  <div id="competitionPanel" style="display:none;">
+    <input type="text" id="newCompetition" placeholder="Naam competitie">
 
-    <div id="abMarkers">
-      <div id="markA" class="marker" style="display:none;">A</div>
-      <div id="markB" class="marker" style="display:none;">B</div>
-    </div>
+    <select id="competitionType">
+      <option value="year">Jaar competitie</option>
+      <option value="vacation">Vacation toernooi</option>
+    </select>
+
+    <button onclick="addCompetition()">Toevoegen</button>
+    <div id="competitionList"></div>
   </div>
-
-  <div class="chapter-box">
-    <div class="chapter-title">Repetitie nummer/cijfer</div>
-    <div id="chapters" class="chapter-list"></div>
-  </div>
-
-  <div class="controls-row">
-    <button onclick="togglePlay()" id="playBtn">Play</button>
-    <button onclick="setA()" id="btnA">A -</button>
-    <button onclick="setB()" id="btnB">B -</button>
-  </div>
-
-  <div class="speed">
-    <div class="speed-header">
-      <span>Snelheid</span>
-      <span id="speedVal">100%</span>
-    </div>
-    <input id="speedSlider" type="range" min="50" max="200" value="100"
-      oninput="setSpeed(this.value)">
-  </div>
-
-  <div id="list"></div>
 </div>
 
 <script>
-const tracks=[
-  { name: "Bailando la soca", file: "Bailando.mp3" },
-  { name: "Blinding Lights", file: "Blinding.mp3" },
-  { name: "Moving sounds", file: "Moving.mp3",
-    chapters: [
-      {time:33,label:"19"},{time:52,label:"29"},{time:66,label:"37"},
-      {time:110,label:"61"},{time:124,label:"69"},{time:135,label:"75"},
-      {time:164,label:"91"},{time:186,label:"103"},{time:193,label:"107"},
-      {time:214,label:"119"},{time:240,label:"127"},
-    ]
-  },
-  { name: "Rush hour samba", file: "Rush.mp3",
-    chapters: [
-      {time:30,label:"C"},{time:62,label:"E"},{time:85,label:"F"},
-      {time:103,label:"G"},{time:186,label:"Segno"},{time:234,label:"Coda"},
-    ]
-  },
-  { name: "Shift", file: "Shift.mp3",
-    chapters: [
-      {time:32,label:"18"},{time:51,label:"36"},{time:78,label:"50"},
-      {time:134,label:"89"},{time:149,label:"97"},{time:186,label:"116"},
-    ]
-  },
-  { name: "Smoothavana", file: "Smoothavana.mp3",
-    chapters: [
-      {time:51,label:"25"},{time:89,label:"43"},{time:144,label:"67"},
-      {time:162,label:"75"},{time:198,label:"91"},{time:268,label:"125"},
-    ]
-  },
-  { name: "Trinity (snarky versie)", file: "Trinity.mp3",
-    chapters: [
-      {time:30,label:"B"},{time:95,label:"F"},{time:157,label:"G"},
-      {time:182,label:"H"},{time:213,label:"J"},{time:258,label:"K"},
-      {time:322,label:"L"},
-    ]
-  },
-  { name: "Walk like an Egyptian", file: "Walk.mp3",
-    chapters: [
-      {time:58,label:"B"},{time:67,label:"C"},{time:93,label:"D"},
-      {time:118,label:"E"},{time:128,label:"Segno"},{time:164,label:"Coda"},
-    ]
-  },
-  { name: "Windows of the maloca", file: "Windows.mp3",
-    chapters: [
-      {time:32,label:"A"},{time:48,label:"B"},{time:80,label:"C"},
-      {time:130,label:"D"},{time:162,label:"E"},{time:210,label:"F"},
-      {time:235,label:"G"},{time:260,label:"H"},{time:276,label:"I"},
-      {time:292,label:"J"},
-    ]
-  },
-];
 
-let current=0;
-let loopA=null, loopB=null;
-let chapterElements=[];
+// DATA
+let games = JSON.parse(localStorage.getItem("games") || JSON.stringify([
+  "Clever 1","Clever 2","Clever 3","Clever 4","Clever D",
+  "Keer op keer 1","Keer op keer 2","Keer op keer 3","Keer op keer 4",
+  "Locus","Wingspan","Wingspan 2v2"
+]));
 
-const wavesurfer=WaveSurfer.create({
-  container:"#waveform",
-  waveColor:"#4f7cff",
-  progressColor:"#2b6fff",
-  height:80,
-  normalize:true
-});
+let results = JSON.parse(localStorage.getItem("results") || "[]");
+let competitions = JSON.parse(localStorage.getItem("competitions") || "[]");
 
-/* playlist */
-const list=document.getElementById("list");
+let historyMode = "active";
 
-tracks.forEach((t,i)=>{
-  const div=document.createElement("div");
-  div.className="track";
-  div.innerText=t.name;
-  div.onclick=()=>loadTrack(i);
-  list.appendChild(div);
-});
+// RENDER GAMES
+function renderGames() {
+  games.sort((a,b)=>a.localeCompare(b));
 
-function updatePlaylist(){
-  document.querySelectorAll(".track").forEach((el,i)=>{
-    el.classList.toggle("active",i===current);
-  });
+  gameSelect.innerHTML = games.map(g =>
+    `<option value="${g}">${g}</option>`
+  ).join("");
+
+  document.getElementById("gameList").innerHTML =
+    games.map(g => `
+      <div class="row">
+        <span>${g}</span>
+        <button class="delete-btn" onclick="deleteGame('${g}')">🗑</button>
+      </div>
+    `).join("");
+
+  localStorage.setItem("games", JSON.stringify(games));
 }
 
-/* chapters */
-function renderChapters(){
-  const container=document.getElementById("chapters");
-  container.innerHTML="";
-  chapterElements=[];
+// RENDER COMPETITIES
+function renderCompetitions() {
+  const active = competitions.filter(c => c.active && !c.finished);
 
-  const chapters = tracks[current].chapters || [];
+  document.getElementById("competitionSelect").innerHTML =
+    active.length === 0
+      ? `<option value="">Geen actieve competitie</option>`
+      : active.map(c =>
+          `<option value="${c.id}">${c.name}</option>`
+        ).join("");
 
-  if(chapters.length === 0){
-    container.innerHTML="<div style='opacity:0.5'>-</div>";
-    return;
+  localStorage.setItem("competitions", JSON.stringify(competitions));
+}
+
+// COMPETITIE LIJST
+function renderCompetitionList() {
+  document.getElementById("competitionList").innerHTML =
+    competitions.map(c => `
+      <div class="row">
+        <span>${c.name} (${c.type}) ${c.finished ? '✅' : ''}</span>
+        <button onclick="finishCompetition(${c.id})">Sluit af</button>
+        <button onclick="deleteCompetition(${c.id})" class="delete-btn">🗑</button>
+      </div>
+    `).join("");
+}
+
+// NIEUW SPEL
+function addNewGame() {
+  const g = document.getElementById("newGame").value.trim();
+  if (!g) return;
+
+  if (!games.includes(g)) {
+    games.push(g);
+    renderGames();
   }
 
-  chapters.forEach(ch=>{
-    const el=document.createElement("div");
-    el.className="chapter";
-    el.innerText=ch.label;
-    el.onclick=()=>wavesurfer.setTime(ch.time);
-
-    container.appendChild(el);
-    chapterElements.push(el);
-  });
+  document.getElementById("newGame").value = "";
 }
 
-function updateActiveChapter(time){
-  const chapters = tracks[current].chapters || [];
-  let activeIndex = -1;
+// VERWIJDER SPEL
+function deleteGame(name) {
+  if (!confirm("Spel verwijderen?")) return;
 
-  for(let i=0;i<chapters.length;i++){
-    if(time >= chapters[i].time){
-      activeIndex = i;
-    } else break;
+  games = games.filter(g => g !== name);
+  results = results.filter(r => r.game !== name);
+
+  localStorage.setItem("results", JSON.stringify(results));
+
+  renderGames();
+  render();
+}
+
+// NIEUWE COMPETITIE
+function addCompetition() {
+  const name = document.getElementById("newCompetition").value.trim();
+  const type = document.getElementById("competitionType").value;
+
+  if (!name) return;
+
+  competitions.push({
+    id: Date.now(),
+    name,
+    type,
+    active: true,
+    finished: false
+  });
+
+  document.getElementById("newCompetition").value = "";
+
+  renderCompetitions();
+  renderCompetitionList();
+}
+
+// AFSLUITEN
+function finishCompetition(id) {
+  const comp = competitions.find(c => c.id === id);
+  if (!comp) return;
+
+  comp.finished = true;
+  comp.active = false;
+
+  localStorage.setItem("competitions", JSON.stringify(competitions));
+
+  renderCompetitions();
+  renderCompetitionList();
+  render();
+}
+
+// VERWIJDER COMPETITIE
+function deleteCompetition(id) {
+  if (!confirm("Competitie verwijderen?")) return;
+
+  competitions = competitions.filter(c => c.id !== id);
+  results = results.filter(r => Number(r.competitionId) !== id);
+
+  localStorage.setItem("competitions", JSON.stringify(competitions));
+  localStorage.setItem("results", JSON.stringify(results));
+
+  renderCompetitions();
+  renderCompetitionList();
+  render();
+}
+
+// GAME OPSLAAN
+function addGame() {
+  const competitionId = document.getElementById("competitionSelect").value;
+
+  results.push({
+    game: gameSelect.value,
+    winner: document.getElementById("winner").value,
+    scoreL: Number(document.getElementById("scoreL").value || 0),
+    scoreM: Number(document.getElementById("scoreM").value || 0),
+    competitionId
+  });
+
+  localStorage.setItem("results", JSON.stringify(results));
+  render();
+}
+
+// DELETE MATCH
+function deleteMatch(index) {
+  results.splice(index,1);
+  localStorage.setItem("results", JSON.stringify(results));
+  render();
+}
+
+// FILTERS
+function getActiveResultsByType(type) {
+  const activeIds = competitions
+    .filter(c => c.type === type && c.active && !c.finished)
+    .map(c => c.id);
+
+  return results.filter(r => activeIds.includes(Number(r.competitionId)));
+}
+
+function getAllActiveResults() {
+  const activeIds = competitions
+    .filter(c => c.active && !c.finished)
+    .map(c => c.id);
+
+  return results.filter(r => activeIds.includes(Number(r.competitionId)));
+}
+
+// PUNTEN
+function calculatePoints() {
+
+  let yearPoints = { L:0, M:0 };
+  let vacationPoints = { L:0, M:0 };
+
+  competitions.filter(c => c.finished).forEach(c => {
+
+    let L=0, M=0;
+
+    results
+      .filter(r => r.competitionId == c.id)
+      .forEach(r => {
+        if(r.winner==="L") L++;
+        if(r.winner==="M") M++;
+      });
+
+    if (L === M) return;
+
+    const winner = L > M ? "L" : "M";
+
+    if (c.type === "year") yearPoints[winner]++;
+    if (c.type === "vacation") vacationPoints[winner]++;
+  });
+
+  return { yearPoints, vacationPoints };
+}
+
+// HISTORY MODE
+function setHistoryMode(mode) {
+  historyMode = mode;
+  render();
+}
+
+// RENDER
+function getActiveCompetitionName(type) {
+  const comp = competitions.find(c => c.type === type && c.active && !c.finished);
+  return comp ? comp.name : (type === "year" ? "Jaar competitie" : "Vacation");
+}
+function render() {
+
+  const yearResults = getActiveResultsByType("year");
+  const vacationResults = getActiveResultsByType("vacation");
+
+  function calc(list) {
+    let L=0, M=0, D=0;
+
+    list.forEach(r=>{
+      if(r.winner==="L") L++;
+      else if(r.winner==="M") M++;
+      else D++;
+    });
+
+    let leader = "🤝 Gelijk";
+    if (L > M) leader = "🔥 L staat voor";
+    else if (M > L) leader = "🔥 M staat voor";
+
+    return { total:list.length, L, M, D, leader };
   }
 
-  chapterElements.forEach((el,i)=>{
-    el.classList.toggle("active", i===activeIndex);
-  });
-}
+  const year = calc(yearResults);
+  const vacation = calc(vacationResults);
+  const { yearPoints, vacationPoints } = calculatePoints();
 
-/* LOOP FUNCTIES */
-function resetLoop(){
-  loopA=null;
-  loopB=null;
+document.getElementById("dashboard").innerHTML = `
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+    
+    <div class="card">
+      <h3>${getActiveCompetitionName("year")}</h3>
+      <div class="row"><span>Totaal</span><b>${year.total}</b></div>
+      <div class="row"><span>L</span><b>${year.L}</b></div>
+      <div class="row"><span>M</span><b>${year.M}</b></div>
+      <div class="row"><span>Gelijk</span><b>${year.D}</b></div>
+      <div class="row"><b>${year.leader}</b></div>
+    </div>
 
-  markA.style.display="none";
-  markB.style.display="none";
-  loopZone.style.display="none";
+    <div class="card">
+      <h3>${getActiveCompetitionName("vacation")}</h3>
+      <div class="row"><span>Totaal</span><b>${vacation.total}</b></div>
+      <div class="row"><span>L</span><b>${vacation.L}</b></div>
+      <div class="row"><span>M</span><b>${vacation.M}</b></div>
+      <div class="row"><span>Gelijk</span><b>${vacation.D}</b></div>
+      <div class="row"><b>${vacation.leader}</b></div>
+    </div>
 
-  updateButtons();
-  updateVisuals();
-}
+  </div>
 
-function updateButtons(){
-  btnA.innerText = "A " + (loopA ? format(loopA) : "-");
-  btnB.innerText = "B " + (loopB ? format(loopB) : "-");
-}
+  <div class="card">
+    <h3>Punten</h3>
+    <div class="row"><span>Jaar L</span><b>${yearPoints.L}</b></div>
+    <div class="row"><span>Jaar M</span><b>${yearPoints.M}</b></div>
+    <div class="row"><span>Vacation L</span><b>${vacationPoints.L}</b></div>
+    <div class="row"><span>Vacation M</span><b>${vacationPoints.M}</b></div>
+  </div>
+`;
 
-function updateVisuals(){
-  const dur = wavesurfer.getDuration();
-  if(!dur) return;
+  let html = "";
 
-  let a = loopA;
-  let b = loopB;
+  if (historyMode === "active") {
 
-  if(a && b && a > b) [a,b] = [b,a];
+    const activeResults = getAllActiveResults();
 
-  if(a != null){
-    markA.style.display="block";
-    markA.style.left=(a/dur*100)+"%";
-  } else markA.style.display="none";
+    html = activeResults.length === 0
+      ? "<div class='muted'>Nog geen actieve games</div>"
+      : activeResults.map(r=>{
+          const index = results.indexOf(r);
+          return `
+            <div class="row">
+              <div style="flex:2">${r.game}</div>
+              <div style="flex:2;text-align:center;font-weight:bold">
+              <span style="color:#4a6cf7">L ${r.scoreL}</span>
+               -
+              <span style="color:#ff4d4d">M ${r.scoreM}</span>
+              </div>
+              <div style="flex:1;text-align:right">${r.winner}</div>
+              <button class="delete-btn" onclick="deleteMatch(${index})">🗑</button>
+            </div>
+          `;
+        }).join("");
 
-  if(b != null){
-    markB.style.display="block";
-    markB.style.left=(b/dur*100)+"%";
-  } else markB.style.display="none";
-
-  if(a != null && b != null){
-    loopZone.style.display="block";
-    loopZone.style.left=(a/dur*100)+"%";
-    loopZone.style.width=((b-a)/dur*100)+"%";
   } else {
-    loopZone.style.display="none";
-  }
-}
 
-function setA(){
-  loopA = (loopA !== null) ? null : wavesurfer.getCurrentTime();
-  updateButtons();
-  updateVisuals();
-}
+    const finishedCompetitions = competitions.filter(c => c.finished);
 
-function setB(){
-  loopB = (loopB !== null) ? null : wavesurfer.getCurrentTime();
-  updateButtons();
-  updateVisuals();
-}
+    if (finishedCompetitions.length === 0) {
+      html = "<div class='muted'>Geen archief beschikbaar</div>";
+    } else {
 
-/* load */
-function loadTrack(i){
-  current=i;
-  wavesurfer.load(tracks[i].file);
+      html = finishedCompetitions.map(c => {
 
-  updatePlaylist();
+        const compResults = results.filter(r => Number(r.competitionId) === c.id);
 
-  setSpeed(100);
-  document.getElementById("speedSlider").value = 100;
+        if (compResults.length === 0) return "";
 
-  resetLoop();
-
-  wavesurfer.once("ready",()=>{
-    wavesurfer.play();
-    playBtn.innerText="Pause";
-    totalTime.innerText=format(wavesurfer.getDuration());
-    renderChapters();
-  });
-}
-
-function togglePlay(){
-  wavesurfer.playPause();
-  playBtn.innerText = wavesurfer.isPlaying() ? "Pause" : "Play";
-}
-
-function setSpeed(val){
-  wavesurfer.setPlaybackRate(val/100);
-  speedVal.innerText = val + "%";
-}
-
-wavesurfer.on("audioprocess",()=>{
-  const time = wavesurfer.getCurrentTime();
-  currentTime.innerText = format(time);
-
-  updateActiveChapter(time);
-
-  if(loopA!=null && loopB!=null){
-    let a = loopA, b = loopB;
-    if(a > b) [a,b] = [b,a];
-
-    if(time >= b){
-      wavesurfer.setTime(a);
+        return `
+          <div class="card">
+            <h4>${c.name}</h4>
+            ${compResults.map(r => `
+              <div class="row">
+                <div style="flex:2">${r.game}</div>
+                <div style="flex:2;text-align:center;font-weight:bold">
+                <span style="color:#4a6cf7">L ${r.scoreL}</span>
+                 -
+                 <span style="color:#ff4d4d">M ${r.scoreM}</span>
+                 </div>
+                <div style="flex:1;text-align:right">${r.winner}</div>
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }).join("");
     }
   }
-});
 
-function format(t){
-  const m=Math.floor(t/60);
-  const s=Math.floor(t%60);
-  return m+":"+s.toString().padStart(2,'0');
+  document.getElementById("history").innerHTML = html;
 }
 
-/* init */
-loadTrack(0);
+// TOGGLES
+function toggleAdmin() {
+  const password = prompt("Voer admin wachtwoord in:");
+  if(password === "Snoef02022020") { // hier zet je je eigen wachtwoord
+    const p = document.getElementById("adminPanel");
+    p.style.display = (p.style.display === "none") ? "block" : "none";
+  } else {
+    alert("Onjuist wachtwoord!");
+  }
+}
+
+function toggleCompetitionAdmin() {
+  const p = document.getElementById("competitionPanel");
+  p.style.display = (p.style.display === "none") ? "block" : "none";
+}
+
+// INIT
+renderGames();
+renderCompetitions();
+renderCompetitionList();
+render();
+
 </script>
 
 </body>
