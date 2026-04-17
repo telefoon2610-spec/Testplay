@@ -3,16 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <title>Scorebord L vs M</title>
+
 <style>
-body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f7fb; max-width: 900px; margin: 20px auto; color: #333; }
-h1 { text-align:center; margin-bottom:20px; }
+body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 900px; margin: 20px auto; background: #f5f7fb; color: #333;}
+h1 { text-align:center; }
 .card { background:white; border:none; padding:16px; margin-top:15px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); }
 select, input { padding:8px; margin:4px; border-radius:6px; border:1px solid #ccc; }
-button { padding:8px 12px; margin:4px; border-radius:6px; border:none; cursor:pointer; background:#4a6cf7; color:white; transition:0.2s; }
-button:hover { background:#3a55d1; }
-.row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee; align-items:center; gap:10px; }
-.delete-btn { background:#ff4d4d; } .delete-btn:hover { background:#d93636; }
-.toggle { background:#555; } .muted { color:gray; font-size:12px; }
+button { padding:8px 12px; margin:4px; border-radius:6px; border:none; cursor:pointer; background:#4a6cf7; color:white; transition:0.2s;}
+button:hover { background:#3a55d1;}
+.row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee; align-items:center; gap:10px;}
+.delete-btn { background:#ff4d4d;}
+.delete-btn:hover { background:#d93636;}
+.toggle { background:#555; }
+.muted { color:gray; font-size:12px; }
 </style>
 </head>
 <body>
@@ -22,10 +25,10 @@ button:hover { background:#3a55d1; }
 <!-- LOGIN -->
 <div class="card">
   <h3>Login</h3>
-  <input type="email" id="email" placeholder="E-mail">
-  <input type="password" id="password" placeholder="Wachtwoord">
-  <button id="loginBtn">Login</button>
-  <div id="userInfo" style="margin-top:10px;">Niet ingelogd</div>
+  <input type="email" id="email" placeholder="E-mail"><br>
+  <input type="password" id="password" placeholder="Wachtwoord"><br>
+  <button id="loginBtn">Inloggen</button>
+  <div id="userInfo">Niet ingelogd</div>
 </div>
 
 <!-- GAME INPUT -->
@@ -77,15 +80,12 @@ button:hover { background:#3a55d1; }
   </div>
 </div>
 
-<!-- FIREBASE SCRIPT -->
 <script type="module">
-
-// ====== FIREBASE IMPORTS ======
+// ================= FIREBASE =================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-// ====== FIREBASE CONFIG ======
 const firebaseConfig = {
   apiKey: "AIzaSyCiBTxLDiIy7LcF0kxJFt54OdgOfu9xHI8",
   authDomain: "scorebord-lm.firebaseapp.com",
@@ -99,25 +99,23 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// ====== DATA ======
-let games = ["Clever 1","Clever 2","Clever 3"];
-let competitions = [];
-let results = [];
-let historyMode = "active";
-
-// ====== AUTH ======
-document.getElementById("loginBtn").onclick = async () => {
+// ================= LOGIN =================
+document.getElementById("loginBtn").addEventListener("click", async () => {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
+
+  if (!email || !password) return alert("Vul e-mail en wachtwoord in");
+
   try {
-    await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    alert("Inloggen gelukt als: " + userCredential.user.email);
   } catch(e) {
     alert("Fout bij login: " + e.message);
   }
-};
+});
 
-onAuthStateChanged(auth, user => {
-  if(user) {
+onAuthStateChanged(auth, (user) => {
+  if (user) {
     document.getElementById("userInfo").innerText = "Ingelogd als: " + user.email;
     loadResults();
   } else {
@@ -125,7 +123,13 @@ onAuthStateChanged(auth, user => {
   }
 });
 
-// ====== FIRESTORE LOAD ======
+// ================= DATA =================
+let games = [];
+let competitions = [];
+let results = [];
+let historyMode = "active";
+
+// FIRESTORE LADEN
 async function loadResults() {
   const q = query(collection(db, "results"), orderBy("createdAt"));
   const snap = await getDocs(q);
@@ -133,63 +137,58 @@ async function loadResults() {
   render();
 }
 
-// ====== SAVE GAME ======
+// ================= GAME OPSLAAN =================
 async function addGame() {
   const user = auth.currentUser;
-  if(!user) return alert("Je moet inloggen");
+  if (!user) return alert("Je moet inloggen");
 
-  const competitionId = document.getElementById("competitionSelect").value;
   try {
     await addDoc(collection(db, "results"), {
-      game: document.getElementById("gameSelect").value,
+      game: gameSelect.value,
       winner: document.getElementById("winner").value,
       scoreL: Number(document.getElementById("scoreL").value || 0),
       scoreM: Number(document.getElementById("scoreM").value || 0),
-      competitionId,
+      competitionId: document.getElementById("competitionSelect").value,
       createdBy: user.email,
       createdAt: Date.now()
     });
-    document.getElementById("scoreL").value = "";
-    document.getElementById("scoreM").value = "";
+    alert("Opgeslagen!");
     loadResults();
   } catch(e) {
-    alert("Fout bij opslaan: " + e.message);
+    alert("Fout: " + e.message);
   }
 }
 
-// ====== ADMIN FUNCTIONS (LOKAAL) ======
+// ================= INIT LOKAAL =================
+games = JSON.parse(localStorage.getItem("games") || JSON.stringify(["Clever 1","Clever 2","Clever 3"]));
+competitions = JSON.parse(localStorage.getItem("competitions") || JSON.stringify([]));
+
 function renderGames() {
-  document.getElementById("gameSelect").innerHTML = games.map(g => `<option>${g}</option>`).join("");
+  gameSelect.innerHTML = games.map(g => `<option value="${g}">${g}</option>`).join("");
   document.getElementById("gameList").innerHTML = games.map(g => `<div class="row"><span>${g}</span><button class="delete-btn" onclick="deleteGame('${g}')">🗑</button></div>`).join("");
-}
-function addNewGame() {
-  const g = document.getElementById("newGame").value.trim();
-  if(!g || games.includes(g)) return;
-  games.push(g);
-  document.getElementById("newGame").value = "";
-  renderGames();
-}
-function deleteGame(name) {
-  games = games.filter(g => g!==name);
-  renderGames();
 }
 
 function renderCompetitions() {
-  document.getElementById("competitionSelect").innerHTML = competitions.length===0? "<option>Geen actieve competitie</option>": competitions.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
-  document.getElementById("competitionList").innerHTML = competitions.map(c=>`<div class="row"><span>${c.name}</span></div>`).join("");
+  document.getElementById("competitionSelect").innerHTML = competitions.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
+  document.getElementById("competitionList").innerHTML = competitions.map(c => `<div class="row"><span>${c.name}</span></div>`).join("");
 }
-function addCompetition() {
+
+// expose functions
+window.addGame = addGame;
+window.addNewGame = function(){
+  const g = document.getElementById("newGame").value.trim();
+  if(!g) return;
+  games.push(g);
+  renderGames();
+  document.getElementById("newGame").value = "";
+}
+window.addCompetition = function(){
   const name = document.getElementById("newCompetition").value.trim();
   if(!name) return;
-  competitions.push({id:Date.now(),name});
-  document.getElementById("newCompetition").value="";
+  competitions.push({ id: Date.now(), name, type: document.getElementById("competitionType").value, active:true, finished:false });
   renderCompetitions();
+  document.getElementById("newCompetition").value = "";
 }
 
-function toggleAdmin(){const p=document.getElementById("adminPanel");p.style.display=(p.style.display==="none")?"block":"none";}
-function toggleCompetitionAdmin(){const p=document.getElementById("competitionPanel");p.style.display=(p.style.display==="none")?"block":"none";}
-
-// ====== RENDER ======
-function render() {
-  // Dashboard
-  const dashboard = document.getElement
+window.toggleAdmin = function(){ document.getElementById("adminPanel").style.display = document.getElementById("adminPanel").style.display==="none"?"block":"none";}
+window.toggleCompetitionAdmin = function(){ document.getElementById("competitionPanel").style.display = document.getElementById("competitionPanel").style.display==="none"?"block":"none";}
