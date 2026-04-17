@@ -4,46 +4,12 @@
 <meta charset="UTF-8">
 <title>Scorebord L vs M</title>
 <style>
-body {
-  font-family: 'Segoe UI', Arial, sans-serif;
-  background: #f5f7fb;
-  max-width: 900px;
-  margin: 20px auto;
-  color: #333;
-}
-.card {
-  background: white;
-  border: none;
-  padding: 16px;
-  margin-top: 15px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
-select, input {
-  padding: 8px;
-  margin: 4px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-button {
-  padding: 8px 12px;
-  margin: 4px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  background: #4a6cf7;
-  color: white;
-  transition: 0.2s;
-}
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f7fb; max-width: 900px; margin: 20px auto; color: #333; }
+.card { background: white; border: none; padding: 16px; margin-top: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+select, input { padding: 8px; margin: 4px; border-radius: 6px; border: 1px solid #ccc; }
+button { padding: 8px 12px; margin: 4px; border-radius: 6px; border: none; cursor: pointer; background: #4a6cf7; color: white; transition: 0.2s; }
 button:hover { background: #3a55d1; }
-.row {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid #eee;
-  align-items: center;
-  gap: 10px;
-}
+.row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; align-items: center; gap: 10px; }
 .delete-btn { background: #ff4d4d; }
 .delete-btn:hover { background: #d93636; }
 .toggle { background: #555; }
@@ -55,17 +21,17 @@ button:hover { background: #3a55d1; }
 
 <h1>Scorebord L vs M</h1>
 
-<!-- LOGIN -->
 <div id="loginCard" class="card">
   <h3>Login</h3>
-  <input type="email" id="email" placeholder="Email"><br>
+  <input type="text" id="username" placeholder="Gebruikersnaam"><br>
   <input type="password" id="password" placeholder="Wachtwoord"><br>
-  <button onclick="login()">Inloggen</button>
+  <button onclick="checkLogin()">Inloggen</button>
   <div id="loginError" style="color:red;margin-top:10px;"></div>
 </div>
 
-<!-- APP -->
 <div id="app" style="display:none;">
+  <!-- Hier komt je hele oude code voor games, competities, scores, historie -->
+  <!-- Kopieer je oude HTML hieronder -->
   <div class="card">
     <h3>Nieuwe game</h3>
     <select id="competitionSelect"></select><br>
@@ -79,28 +45,22 @@ button:hover { background: #3a55d1; }
     <input type="number" id="scoreM" placeholder="Score M">
     <button onclick="addGame()">Opslaan</button>
   </div>
-
   <div id="dashboard"></div>
-
   <div class="card">
-    <h3>
-      Geschiedenis
+    <h3>Geschiedenis
       <button onclick="setHistoryMode('active')">Actief</button>
       <button onclick="setHistoryMode('archive')">Archief</button>
     </h3>
     <div id="history"></div>
   </div>
-
   <div class="card">
     <button class="toggle" onclick="toggleAdmin()">Spellen beheren ⚙️</button>
     <button class="toggle" onclick="toggleCompetitionAdmin()">Competities beheren 🏆</button>
-
     <div id="adminPanel" style="display:none;">
       <input type="text" id="newGame" placeholder="Nieuw spel">
       <button onclick="addNewGame()">Toevoegen</button>
       <div id="gameList"></div>
     </div>
-
     <div id="competitionPanel" style="display:none;">
       <input type="text" id="newCompetition" placeholder="Naam competitie">
       <select id="competitionType">
@@ -113,70 +73,26 @@ button:hover { background: #3a55d1; }
   </div>
 </div>
 
-<script type="module">
-// FIREBASE INIT
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCiBTxLDiIy7LcF0kxJFt54OdgOfu9xHI8",
-  authDomain: "scorebord-lm.firebaseapp.com",
-  projectId: "scorebord-lm",
-  storageBucket: "scorebord-lm.appspot.com",
-  messagingSenderId: "806422872262",
-  appId: "1:806422872262:web:06e04d7aae8edb1d1e17c7"
-};
-
-const appFirebase = initializeApp(firebaseConfig);
-const auth = getAuth();
-const db = getFirestore();
-
-// APP DATA
-let games = [];
-let competitions = [];
-let results = [];
-let historyMode = "active";
-
+<script>
 // LOGIN
-async function login() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-  try {
-    await signInWithEmailAndPassword(auth, email, password);
-  } catch(e) {
-    document.getElementById("loginError").textContent = "Login mislukt: " + e.message;
-  }
-}
-
-// AUTH STATE
-onAuthStateChanged(auth, async user => {
-  if (user) {
+function checkLogin() {
+  const u = document.getElementById("username").value;
+  const p = document.getElementById("password").value;
+  if(u === "admin" && p === "snoef02022020") {
     document.getElementById("loginCard").style.display = "none";
     document.getElementById("app").style.display = "block";
-    await loadData();
-    renderGames(); renderCompetitions(); renderCompetitionList(); render();
+    initApp(); // hier starten we je oude code
   } else {
-    document.getElementById("loginCard").style.display = "block";
-    document.getElementById("app").style.display = "none";
+    document.getElementById("loginError").textContent = "Gebruikersnaam of wachtwoord fout!";
   }
-});
-
-// LOAD DATA FROM FIRESTORE
-async function loadData() {
-  const gamesSnap = await getDocs(collection(db,"games"));
-  games = gamesSnap.docs.map(d=>d.data().name);
-
-  const compSnap = await getDocs(collection(db,"competitions"));
-  competitions = compSnap.docs.map(d=>d.data());
-
-  const resSnap = await getDocs(collection(db,"results"));
-  results = resSnap.docs.map(d=>d.data());
 }
 
-// Hier kun je je oude functies plakken: renderGames, renderCompetitions, addGame, etc.
-// Ze moeten nu Firestore gebruiken bij toevoegen en verwijderen.
-
+// HIER START JE OUDE CODE
+function initApp() {
+  // Kopieer hier al je oude JavaScript code voor games, competities, scores etc.
+  // Zodat het werkt nadat je bent ingelogd.
+  console.log("App gestart, hier kun je je oude code plaatsen!");
+}
 </script>
 </body>
 </html>
