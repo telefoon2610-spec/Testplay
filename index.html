@@ -11,138 +11,172 @@ body {
   margin: 20px auto;
   color: #333;
 }
-h1 { text-align:center; margin-bottom:20px; }
-.card { background:white; border:none; padding:16px; margin-top:15px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08);}
-select, input { padding:8px; margin:4px; border-radius:6px; border:1px solid #ccc;}
-button { padding:8px 12px; margin:4px; border-radius:6px; border:none; cursor:pointer; background:#4a6cf7; color:white; transition:0.2s;}
-button:hover { background:#3a55d1;}
-.row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee; align-items:center; gap:10px;}
-.delete-btn { background:#ff4d4d;}
-.delete-btn:hover { background:#d93636;}
-.toggle { background:#555; }
-.muted { color:gray; font-size:12px; }
-#loginCard { max-width:400px; margin:50px auto; }
+.card {
+  background: white;
+  border: none;
+  padding: 16px;
+  margin-top: 15px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+select, input {
+  padding: 8px;
+  margin: 4px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+button {
+  padding: 8px 12px;
+  margin: 4px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: #4a6cf7;
+  color: white;
+  transition: 0.2s;
+}
+button:hover { background: #3a55d1; }
+.row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+  align-items: center;
+  gap: 10px;
+}
+.delete-btn { background: #ff4d4d; }
+.delete-btn:hover { background: #d93636; }
+.toggle { background: #555; }
+.muted { color: gray; font-size: 12px; }
+#loginCard { max-width: 400px; margin: 50px auto; text-align:center; }
 </style>
 </head>
 <body>
 
 <h1>Scorebord L vs M</h1>
 
+<!-- LOGIN -->
 <div id="loginCard" class="card">
   <h3>Login</h3>
-  <input type="email" id="email" placeholder="E-mail"><br>
+  <input type="email" id="email" placeholder="Email"><br>
   <input type="password" id="password" placeholder="Wachtwoord"><br>
-  <button id="loginBtn">Inloggen</button>
-  <div id="loginError" class="muted"></div>
+  <button onclick="login()">Inloggen</button>
+  <div id="loginError" style="color:red;margin-top:10px;"></div>
 </div>
 
-<div id="mainApp" style="display:none;">
-
-<!-- ➕ GAME INPUT -->
-<div class="card">
-  <h3>Nieuwe game</h3>
-  <select id="competitionSelect"></select><br>
-  <select id="gameSelect"></select>
-  <select id="winner">
-    <option value="L">L wint</option>
-    <option value="M">M wint</option>
-    <option value="Gelijk">Gelijk</option>
-  </select>
-  <input type="number" id="scoreL" placeholder="Score L">
-  <input type="number" id="scoreM" placeholder="Score M">
-  <button onclick="addGame()">Opslaan</button>
-</div>
-
-<!-- 📊 OVERZICHT -->
-<div id="dashboard"></div>
-
-<!-- 📜 HISTORY -->
-<div class="card">
-  <h3>
-    Geschiedenis
-    <button onclick="setHistoryMode('active')">Actief</button>
-    <button onclick="setHistoryMode('archive')">Archief</button>
-  </h3>
-  <div id="history"></div>
-</div>
-
-<!-- ⚙️ BEHEER -->
-<div class="card">
-  <button class="toggle" onclick="toggleAdmin()">Spellen beheren ⚙️</button>
-  <button class="toggle" onclick="toggleCompetitionAdmin()">Competities beheren 🏆</button>
-
-  <div id="adminPanel" style="display:none;">
-    <input type="text" id="newGame" placeholder="Nieuw spel">
-    <button onclick="addNewGame()">Toevoegen</button>
-    <div id="gameList"></div>
-  </div>
-
-  <div id="competitionPanel" style="display:none;">
-    <input type="text" id="newCompetition" placeholder="Naam competitie">
-    <select id="competitionType">
-      <option value="year">Jaar competitie</option>
-      <option value="vacation">Vacation toernooi</option>
+<!-- APP -->
+<div id="app" style="display:none;">
+  <div class="card">
+    <h3>Nieuwe game</h3>
+    <select id="competitionSelect"></select><br>
+    <select id="gameSelect"></select>
+    <select id="winner">
+      <option value="L">L wint</option>
+      <option value="M">M wint</option>
+      <option value="Gelijk">Gelijk</option>
     </select>
-    <button onclick="addCompetition()">Toevoegen</button>
-    <div id="competitionList"></div>
+    <input type="number" id="scoreL" placeholder="Score L">
+    <input type="number" id="scoreM" placeholder="Score M">
+    <button onclick="addGame()">Opslaan</button>
   </div>
-</div>
 
+  <div id="dashboard"></div>
+
+  <div class="card">
+    <h3>
+      Geschiedenis
+      <button onclick="setHistoryMode('active')">Actief</button>
+      <button onclick="setHistoryMode('archive')">Archief</button>
+    </h3>
+    <div id="history"></div>
+  </div>
+
+  <div class="card">
+    <button class="toggle" onclick="toggleAdmin()">Spellen beheren ⚙️</button>
+    <button class="toggle" onclick="toggleCompetitionAdmin()">Competities beheren 🏆</button>
+
+    <div id="adminPanel" style="display:none;">
+      <input type="text" id="newGame" placeholder="Nieuw spel">
+      <button onclick="addNewGame()">Toevoegen</button>
+      <div id="gameList"></div>
+    </div>
+
+    <div id="competitionPanel" style="display:none;">
+      <input type="text" id="newCompetition" placeholder="Naam competitie">
+      <select id="competitionType">
+        <option value="year">Jaar competitie</option>
+        <option value="vacation">Vacation toernooi</option>
+      </select>
+      <button onclick="addCompetition()">Toevoegen</button>
+      <div id="competitionList"></div>
+    </div>
+  </div>
 </div>
 
 <script type="module">
-// ===== FIREBASE =====
+// FIREBASE INIT
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, doc, setDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCiBTxLDiIy7LcF0kxJFt54OdgOfu9xHI8",
   authDomain: "scorebord-lm.firebaseapp.com",
   projectId: "scorebord-lm",
-  storageBucket: "scorebord-lm.firebasestorage.app",
+  storageBucket: "scorebord-lm.appspot.com",
   messagingSenderId: "806422872262",
   appId: "1:806422872262:web:06e04d7aae8edb1d1e17c7"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+const appFirebase = initializeApp(firebaseConfig);
+const auth = getAuth();
+const db = getFirestore();
 
-const loginCard = document.getElementById("loginCard");
-const mainApp = document.getElementById("mainApp");
-const loginError = document.getElementById("loginError");
-const loginBtn = document.getElementById("loginBtn");
+// APP DATA
+let games = [];
+let competitions = [];
+let results = [];
+let historyMode = "active";
 
-loginBtn.addEventListener("click", ()=>{
+// LOGIN
+async function login() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
-  loginError.textContent = "";
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch(e) {
+    document.getElementById("loginError").textContent = "Login mislukt: " + e.message;
+  }
+}
 
-  signInWithEmailAndPassword(auth,email,password)
-    .then(userCredential => {
-      loginCard.style.display="none";
-      mainApp.style.display="block";
-      initApp();
-    })
-    .catch(err=>{
-      loginError.textContent = "Login mislukt: "+err.code.replace("auth/","");
-    });
-});
-
-// Controleer bij laden
-onAuthStateChanged(auth, user=>{
-  if(user){
-    loginCard.style.display="none";
-    mainApp.style.display="block";
-    initApp();
+// AUTH STATE
+onAuthStateChanged(auth, async user => {
+  if (user) {
+    document.getElementById("loginCard").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    await loadData();
+    renderGames(); renderCompetitions(); renderCompetitionList(); render();
+  } else {
+    document.getElementById("loginCard").style.display = "block";
+    document.getElementById("app").style.display = "none";
   }
 });
 
-// ===== APP LOGICA =====
-function initApp(){
-  // Hier kun je je bestaande code voor games/competities/results inladen en renderen
-  // Bijvoorbeeld: renderGames(); renderCompetitions(); renderCompetitionList(); render();
-  // Je kunt exact jouw oude code hier plakken
+// LOAD DATA FROM FIRESTORE
+async function loadData() {
+  const gamesSnap = await getDocs(collection(db,"games"));
+  games = gamesSnap.docs.map(d=>d.data().name);
+
+  const compSnap = await getDocs(collection(db,"competitions"));
+  competitions = compSnap.docs.map(d=>d.data());
+
+  const resSnap = await getDocs(collection(db,"results"));
+  results = resSnap.docs.map(d=>d.data());
 }
+
+// Hier kun je je oude functies plakken: renderGames, renderCompetitions, addGame, etc.
+// Ze moeten nu Firestore gebruiken bij toevoegen en verwijderen.
+
 </script>
 </body>
 </html>
