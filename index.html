@@ -70,13 +70,13 @@ button:hover { background:#3a55d1; }
   </div>
 </div>
 
-<script type="module">
-// ================= FIREBASE =================
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+<!-- FIREBASE CDN -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js"></script>
 
-// 🔥 JOUW CONFIG
+<script>
+// ===== FIREBASE CONFIG =====
 const firebaseConfig = {
   apiKey: "AIzaSyCiBTxLDiIy7LcF0kxJFt54OdgOfu9xHI8",
   authDomain: "scorebord-lm.firebaseapp.com",
@@ -86,40 +86,33 @@ const firebaseConfig = {
   appId: "1:806422872262:web:06e04d7aae8edb1d1e17c7"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-// ================= DATA =================
+// ===== DATA =====
 let games = ["Clever 1","Clever 2","Clever 3","Clever 4","Clever D","Keer op keer 1","Keer op keer 2","Keer op keer 3","Keer op keer 4","Locus","Wingspan","Wingspan 2v2"];
 let competitions = [];
 let results = [];
 
-// ================= LOGIN =================
-document.getElementById("loginBtn").addEventListener("click", async () => {
+// ===== LOGIN =====
+document.getElementById("loginBtn").onclick = async () => {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
-  if(!email || !password) return alert("Vul e-mail en wachtwoord in");
-
+  if(!email||!password) return alert("Vul e-mail en wachtwoord in");
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    document.getElementById("userInfo").innerText = "Ingelogd als: " + userCredential.user.email;
+    await auth.signInWithEmailAndPassword(email,password);
+    document.getElementById("userInfo").innerText = "Ingelogd als: "+email;
     loadResults();
   } catch(e) {
-    alert("Fout bij login: " + e.message);
+    alert("Fout bij login: "+e.message);
   }
-});
+};
 
-onAuthStateChanged(auth, user => {
-  if(user) document.getElementById("userInfo").innerText = "Ingelogd als: " + user.email;
-  else document.getElementById("userInfo").innerText = "Niet ingelogd";
-});
-
-// ================= FIRESTORE =================
+// ===== FIRESTORE =====
 async function loadResults() {
-  const q = query(collection(db, "results"), orderBy("createdAt"));
-  const snap = await getDocs(q);
-  results = snap.docs.map(d => d.data());
+  const snapshot = await db.collection("results").orderBy("createdAt").get();
+  results = snapshot.docs.map(d=>d.data());
   render();
 }
 
@@ -128,33 +121,28 @@ async function addGame() {
   if(!user) return alert("Je moet inloggen");
 
   const competitionId = document.getElementById("competitionSelect").value;
-
-  await addDoc(collection(db,"results"), {
+  await db.collection("results").add({
     game: document.getElementById("gameSelect").value,
     winner: document.getElementById("winner").value,
-    scoreL: Number(document.getElementById("scoreL").value || 0),
-    scoreM: Number(document.getElementById("scoreM").value || 0),
+    scoreL: Number(document.getElementById("scoreL").value||0),
+    scoreM: Number(document.getElementById("scoreM").value||0),
     competitionId,
     createdBy: user.email,
     createdAt: Date.now()
   });
-
   alert("Opgeslagen!");
   loadResults();
 }
+document.getElementById("saveGameBtn").onclick = addGame;
 
-document.getElementById("saveGameBtn").addEventListener("click", addGame);
-
-// ================= RENDER =================
+// ===== RENDER =====
 function renderGames() {
-  const gameSelect = document.getElementById("gameSelect");
-  gameSelect.innerHTML = games.map(g=>`<option value="${g}">${g}</option>`).join("");
-  const gameList = document.getElementById("gameList");
-  gameList.innerHTML = games.map(g=>`<div class="row"><span>${g}</span><button class="delete-btn" onclick="deleteGame('${g}')">🗑</button></div>`).join("");
+  document.getElementById("gameSelect").innerHTML = games.map(g=>`<option value="${g}">${g}</option>`).join("");
+  document.getElementById("gameList").innerHTML = games.map(g=>`<div class="row"><span>${g}</span><button class="delete-btn" onclick="deleteGame('${g}')">🗑</button></div>`).join("");
 }
 
 function renderCompetitions() {
-  const active = competitions.filter(c=>c.active && !c.finished);
+  const active = competitions.filter(c=>c.active&&!c.finished);
   document.getElementById("competitionSelect").innerHTML = active.length===0 ? "<option value=''>Geen actieve competitie</option>" : active.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
   document.getElementById("competitionList").innerHTML = competitions.map(c=>`<div class="row"><span>${c.name} (${c.type}) ${c.finished?'✅':''}</span></div>`).join("");
 }
@@ -166,8 +154,15 @@ function render() {
   dashboard.innerHTML=`<div class="card"><h3>Score totaal</h3><div class="row"><span>L</span><b>${L}</b></div><div class="row"><span>M</span><b>${M}</b></div></div>`;
 }
 
-// ================= ADMIN =================
+// ===== ADMIN =====
 function toggleAdmin() { document.getElementById("adminPanel").style.display = document.getElementById("adminPanel").style.display==="none"?"block":"none"; }
 function toggleCompetitionAdmin() { document.getElementById("competitionPanel").style.display = document.getElementById("competitionPanel").style.display==="none"?"block":"none"; }
 
-function addNewGame() { const g=document.getElementById("newGame").value.trim(); if(!g) return;
+function addNewGame() { const g=document.getElementById("newGame").value.trim(); if(!g)return; games.push(g); renderGames(); document.getElementById("newGame").value=""; }
+
+renderGames();
+renderCompetitions();
+</script>
+
+</body>
+</html>
