@@ -4,16 +4,15 @@
 <meta charset="UTF-8">
 <title>Scorebord L vs M</title>
 <style>
-body { font-family: 'Segoe UI', Arial, sans-serif; max-width:900px; margin:20px auto; background:#f5f7fb; color:#333; }
+body { font-family: Arial, sans-serif; max-width: 900px; margin: 20px auto; background:#f5f7fb; color:#333; }
 h1 { text-align:center; margin-bottom:20px; }
-.card { background:white; padding:16px; margin-top:15px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); }
-select, input { padding:8px; margin:4px; border-radius:6px; border:1px solid #ccc; }
-button { padding:8px 12px; margin:4px; border-radius:6px; border:none; cursor:pointer; background:#4a6cf7; color:white; transition:0.2s; }
+.card { background:white; border-radius:12px; padding:16px; margin-top:15px; box-shadow:0 4px 12px rgba(0,0,0,0.08); }
+input, select, button { padding:8px; margin:4px; border-radius:6px; border:1px solid #ccc; }
+button { cursor:pointer; background:#4a6cf7; color:white; border:none; transition:0.2s; }
 button:hover { background:#3a55d1; }
 .row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee; align-items:center; gap:10px; }
 .delete-btn { background:#ff4d4d; }
 .delete-btn:hover { background:#d93636; }
-.toggle { background:#555; }
 .muted { color:gray; font-size:12px; }
 </style>
 </head>
@@ -22,16 +21,16 @@ button:hover { background:#3a55d1; }
 <h1>Scorebord L vs M</h1>
 
 <!-- LOGIN -->
-<div class="card">
+<div class="card" id="loginCard">
   <h3>Login</h3>
-  <input type="email" id="email" placeholder="E-mail"><br>
-  <input type="password" id="password" placeholder="Wachtwoord"><br>
-  <button id="loginBtn">Login</button>
-  <div id="status">Niet ingelogd</div>
+  <input type="email" id="email" placeholder="E-mail">
+  <input type="password" id="password" placeholder="Wachtwoord">
+  <button id="loginBtn">Inloggen</button>
+  <div id="userInfo"></div>
 </div>
 
-<!-- ➕ GAME INPUT -->
-<div class="card">
+<!-- GAME INPUT -->
+<div class="card" id="gameCard" style="display:none;">
   <h3>Nieuwe game</h3>
   <select id="competitionSelect"></select><br>
   <select id="gameSelect"></select>
@@ -42,13 +41,13 @@ button:hover { background:#3a55d1; }
   </select>
   <input type="number" id="scoreL" placeholder="Score L">
   <input type="number" id="scoreM" placeholder="Score M">
-  <button onclick="addGame()">Opslaan</button>
+  <button id="saveGameBtn">Opslaan</button>
 </div>
 
-<!-- 📊 OVERZICHT -->
+<!-- DASHBOARD -->
 <div id="dashboard"></div>
 
-<!-- 📜 HISTORY -->
+<!-- HISTORY -->
 <div class="card">
   <h3>
     Geschiedenis
@@ -58,32 +57,13 @@ button:hover { background:#3a55d1; }
   <div id="history"></div>
 </div>
 
-<!-- ⚙️ BEHEER -->
-<div class="card">
-  <button class="toggle" onclick="toggleAdmin()">Spellen beheren ⚙️</button>
-  <button class="toggle" onclick="toggleCompetitionAdmin()">Competities beheren 🏆</button>
-  <div id="adminPanel" style="display:none;">
-    <input type="text" id="newGame" placeholder="Nieuw spel">
-    <button onclick="addNewGame()">Toevoegen</button>
-    <div id="gameList"></div>
-  </div>
-  <div id="competitionPanel" style="display:none;">
-    <input type="text" id="newCompetition" placeholder="Naam competitie">
-    <select id="competitionType">
-      <option value="year">Jaar competitie</option>
-      <option value="vacation">Vacation toernooi</option>
-    </select>
-    <button onclick="addCompetition()">Toevoegen</button>
-    <div id="competitionList"></div>
-  </div>
-</div>
+<script type="module">
 
-<!-- FIREBASE SCRIPTS -->
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-<script>
+// 🔥 CONFIGUREER JOUW FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyCiBTxLDiIy7LcF0kxJFt54OdgOfu9xHI8",
   authDomain: "scorebord-lm.firebaseapp.com",
@@ -93,116 +73,98 @@ const firebaseConfig = {
   appId: "1:806422872262:web:06e04d7aae8edb1d1e17c7"
 };
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-// ================= LOGIN =================
-document.getElementById("loginBtn").onclick = () => {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-  if(!email || !password) return alert("Vul e-mail en wachtwoord in");
-
-  auth.signInWithEmailAndPassword(email, password)
-    .then(userCredential => {
-      document.getElementById("status").innerText = "Ingelogd als: " + userCredential.user.email;
-      loadResults();
-    })
-    .catch(err => alert("Login fout: " + err.message));
-};
-
-auth.onAuthStateChanged(user => {
-  if(user) document.getElementById("status").innerText = "Ingelogd als: " + user.email;
-  else document.getElementById("status").innerText = "Niet ingelogd";
-});
-
-// ================= DATA =================
+// DATA
 let games = ["Clever 1","Clever 2","Clever 3","Clever 4","Clever D","Keer op keer 1","Keer op keer 2","Keer op keer 3","Keer op keer 4","Locus","Wingspan","Wingspan 2v2"];
 let competitions = [];
 let results = [];
 let historyMode = "active";
 
-// ================= FIRESTORE =================
+// RENDER FUNCTIONS
 function renderGames() {
-  gameSelect.innerHTML = games.map(g => `<option value="${g}">${g}</option>`).join("");
+  document.getElementById("gameSelect").innerHTML = games.map(g => `<option value="${g}">${g}</option>`).join("");
 }
 
 function renderCompetitions() {
-  const active = competitions.filter(c => c.active && !c.finished);
-  competitionSelect.innerHTML = active.length ? active.map(c => `<option value="${c.id}">${c.name}</option>`).join("") : `<option value="">Geen actieve competitie</option>`;
+  document.getElementById("competitionSelect").innerHTML = competitions.length === 0 ? "<option value=''>Geen actieve competitie</option>" : competitions.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
 }
 
-// ➜ OPSLAAN GAME
-function addGame() {
-  const user = auth.currentUser;
-  if(!user) return alert("Je moet inloggen");
-  const competitionId = competitionSelect.value;
-  db.collection("results").add({
-    game: gameSelect.value,
-    winner: winner.value,
-    scoreL: Number(scoreL.value),
-    scoreM: Number(scoreM.value),
-    competitionId,
-    createdBy: user.email,
-    createdAt: Date.now()
-  }).then(() => {
-    alert("Opgeslagen!");
+function renderDashboard() {
+  const dashboard = document.getElementById("dashboard");
+  let L=0, M=0;
+  results.forEach(r => { if(r.winner==="L") L++; if(r.winner==="M") M++; });
+  dashboard.innerHTML = `<div class="card"><h3>Score</h3><div class="row"><span>L</span><b>${L}</b></div><div class="row"><span>M</span><b>${M}</b></div></div>`;
+}
+
+function renderHistory() {
+  const historyDiv = document.getElementById("history");
+  if(results.length === 0){ historyDiv.innerHTML = "<div class='muted'>Nog geen games</div>"; return; }
+  historyDiv.innerHTML = results.map((r,i) => `<div class="row"><div style="flex:2">${r.game}</div><div style="flex:2;text-align:center"><span>L ${r.scoreL}</span> - <span>M ${r.scoreM}</span></div><div style="flex:1;text-align:right">${r.winner}</div></div>`).join("");
+}
+
+// LOGIN
+document.getElementById("loginBtn").onclick = async () => {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  try {
+    await signInWithEmailAndPassword(auth,email,password);
+  } catch(e){
+    alert("Login mislukt: " + e.message);
+  }
+};
+
+onAuthStateChanged(auth, user => {
+  const loginCard = document.getElementById("loginCard");
+  const gameCard = document.getElementById("gameCard");
+  if(user){
+    loginCard.style.display="none";
+    gameCard.style.display="block";
+    document.getElementById("userInfo").innerText = "Ingelogd als: "+user.email;
     loadResults();
-  }).catch(err => alert("Fout: "+err.message));
+  } else {
+    loginCard.style.display="block";
+    gameCard.style.display="none";
+    document.getElementById("userInfo").innerText = "Niet ingelogd";
+  }
+});
+
+// FIRESTORE FUNCTIONS
+async function loadResults(){
+  const q = query(collection(db,"results"),orderBy("createdAt"));
+  const snap = await getDocs(q);
+  results = snap.docs.map(d => d.data());
+  renderDashboard();
+  renderHistory();
 }
 
-// ➜ LADEN RESULTS
-function loadResults() {
-  db.collection("results").orderBy("createdAt").get().then(snap => {
-    results = snap.docs.map(d => d.data());
-    render();
-  });
+async function addGame(){
+  const user = auth.currentUser;
+  if(!user){ alert("Je moet inloggen"); return; }
+  const competitionId = document.getElementById("competitionSelect").value;
+  const newResult = {
+    game: document.getElementById("gameSelect").value,
+    winner: document.getElementById("winner").value,
+    scoreL: Number(document.getElementById("scoreL").value||0),
+    scoreM: Number(document.getElementById("scoreM").value||0),
+    competitionId,
+    createdBy:user.email,
+    createdAt: Date.now()
+  };
+  await addDoc(collection(db,"results"),newResult);
+  document.getElementById("scoreL").value = "";
+  document.getElementById("scoreM").value = "";
+  loadResults();
 }
 
-// ================= COMPETITION =================
-function addCompetition() {
-  const name = newCompetition.value.trim();
-  const type = competitionType.value;
-  if(!name) return;
-  const id = Date.now();
-  competitions.push({id,name,type,active:true,finished:false});
-  renderCompetitions();
-  renderCompetitionList();
-  newCompetition.value="";
-}
+document.getElementById("saveGameBtn").onclick = addGame;
 
-function renderCompetitionList() {
-  competitionList.innerHTML = competitions.map(c=>`
-    <div class="row">
-      <span>${c.name} (${c.type}) ${c.finished?'✅':''}</span>
-      <button onclick="finishCompetition(${c.id})">Sluit af</button>
-      <button class="delete-btn" onclick="deleteCompetition(${c.id})">🗑</button>
-    </div>
-  `).join("");
-}
+// INIT
+renderGames();
+renderCompetitions();
 
-function finishCompetition(id) {
-  const c = competitions.find(c=>c.id===id);
-  if(!c) return;
-  c.finished=true;c.active=false;
-  renderCompetitions();renderCompetitionList();render();
-}
-
-function deleteCompetition(id){
-  competitions = competitions.filter(c=>c.id!==id);
-  results = results.filter(r=>Number(r.competitionId)!==id);
-  renderCompetitions();renderCompetitionList();render();
-}
-
-// ================= RENDER =================
-function render() {
-  renderGames();
-  renderCompetitions();
-  let html="";
-  if(historyMode==="active"){
-    html = results.map((r,i)=>`
-      <div class="row">
-        <div>${r.game}</div>
-        <div>${r.winner}</div>
-        <div>L:${r.scoreL} - M:${r.scoreM}</div>
-      </div
+</script>
+</body>
+</html>
