@@ -2,81 +2,20 @@
 <html lang="nl">
 <head>
 <meta charset="UTF-8">
-<title>Scorebord L vs M</title>
-<style>
-body { font-family:'Segoe UI',Arial,sans-serif; background:#f5f7fb; max-width:900px; margin:20px auto; color:#333; }
-h1 { text-align:center; margin-bottom:20px; }
-.card { background:white; padding:16px; margin-top:15px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); }
-input, select, button { padding:8px; margin:4px; border-radius:6px; border:1px solid #ccc; }
-button { cursor:pointer; background:#4a6cf7; color:white; border:none; transition:.2s; }
-button:hover { background:#3a55d1; }
-.delete-btn { background:#ff4d4d; }
-.delete-btn:hover { background:#d93636; }
-.row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee; align-items:center; gap:10px; }
-.toggle { background:#555; color:white; }
-.muted { color:gray; font-size:12px; }
-</style>
+<title>Firebase Login Test</title>
 </head>
 <body>
 
-<h1>Scorebord L vs M</h1>
+<h2>Login Test</h2>
+<input type="email" id="email" placeholder="E-mail"><br>
+<input type="password" id="password" placeholder="Wachtwoord"><br>
+<button id="loginBtn">Login</button>
+<div id="status">Niet ingelogd</div>
 
-<!-- LOGIN -->
-<div class="card">
-  <h3>Inloggen</h3>
-  <input type="email" id="email" placeholder="E-mail"><br>
-  <input type="password" id="password" placeholder="Wachtwoord"><br>
-  <button id="loginBtn">Inloggen</button>
-  <div id="userInfo">Niet ingelogd</div>
-</div>
-
-<!-- GAME OPSLAAN -->
-<div class="card">
-  <h3>Nieuwe game</h3>
-  <select id="competitionSelect"></select><br>
-  <select id="gameSelect"></select>
-  <select id="winner">
-    <option value="L">L wint</option>
-    <option value="M">M wint</option>
-    <option value="Gelijk">Gelijk</option>
-  </select>
-  <input type="number" id="scoreL" placeholder="Score L">
-  <input type="number" id="scoreM" placeholder="Score M">
-  <button id="saveGameBtn">Opslaan</button>
-</div>
-
-<!-- DASHBOARD -->
-<div id="dashboard"></div>
-
-<!-- ADMIN -->
-<div class="card">
-  <button class="toggle" onclick="toggleAdmin()">Spellen beheren ⚙️</button>
-  <button class="toggle" onclick="toggleCompetitionAdmin()">Competities beheren 🏆</button>
-
-  <div id="adminPanel" style="display:none;">
-    <input type="text" id="newGame" placeholder="Nieuw spel">
-    <button onclick="addNewGame()">Toevoegen</button>
-    <div id="gameList"></div>
-  </div>
-
-  <div id="competitionPanel" style="display:none;">
-    <input type="text" id="newCompetition" placeholder="Naam competitie">
-    <select id="competitionType">
-      <option value="year">Jaar competitie</option>
-      <option value="vacation">Vacation toernooi</option>
-    </select>
-    <button onclick="addCompetition()">Toevoegen</button>
-    <div id="competitionList"></div>
-  </div>
-</div>
-
-<!-- FIREBASE CDN -->
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
 
 <script>
-// ===== FIREBASE CONFIG =====
 const firebaseConfig = {
   apiKey: "AIzaSyCiBTxLDiIy7LcF0kxJFt54OdgOfu9xHI8",
   authDomain: "scorebord-lm.firebaseapp.com",
@@ -88,80 +27,25 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
-const db = firebase.firestore();
 
-// ===== DATA =====
-let games = ["Clever 1","Clever 2","Clever 3","Clever 4","Clever D","Keer op keer 1","Keer op keer 2","Keer op keer 3","Keer op keer 4","Locus","Wingspan","Wingspan 2v2"];
-let competitions = [];
-let results = [];
-
-// ===== LOGIN =====
-document.getElementById("loginBtn").onclick = async () => {
+document.getElementById("loginBtn").onclick = () => {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
-  if(!email||!password) return alert("Vul e-mail en wachtwoord in");
-  try {
-    await auth.signInWithEmailAndPassword(email,password);
-    document.getElementById("userInfo").innerText = "Ingelogd als: "+email;
-    loadResults();
-  } catch(e) {
-    alert("Fout bij login: "+e.message);
-  }
+  if(!email || !password) return alert("Vul e-mail en wachtwoord in");
+  
+  auth.signInWithEmailAndPassword(email, password)
+    .then(userCredential => {
+      document.getElementById("status").innerText = "Ingelogd als: " + userCredential.user.email;
+    })
+    .catch(err => {
+      alert("Login fout: " + err.message);
+    });
 };
 
-// ===== FIRESTORE =====
-async function loadResults() {
-  const snapshot = await db.collection("results").orderBy("createdAt").get();
-  results = snapshot.docs.map(d=>d.data());
-  render();
-}
-
-async function addGame() {
-  const user = auth.currentUser;
-  if(!user) return alert("Je moet inloggen");
-
-  const competitionId = document.getElementById("competitionSelect").value;
-  await db.collection("results").add({
-    game: document.getElementById("gameSelect").value,
-    winner: document.getElementById("winner").value,
-    scoreL: Number(document.getElementById("scoreL").value||0),
-    scoreM: Number(document.getElementById("scoreM").value||0),
-    competitionId,
-    createdBy: user.email,
-    createdAt: Date.now()
-  });
-  alert("Opgeslagen!");
-  loadResults();
-}
-document.getElementById("saveGameBtn").onclick = addGame;
-
-// ===== RENDER =====
-function renderGames() {
-  document.getElementById("gameSelect").innerHTML = games.map(g=>`<option value="${g}">${g}</option>`).join("");
-  document.getElementById("gameList").innerHTML = games.map(g=>`<div class="row"><span>${g}</span><button class="delete-btn" onclick="deleteGame('${g}')">🗑</button></div>`).join("");
-}
-
-function renderCompetitions() {
-  const active = competitions.filter(c=>c.active&&!c.finished);
-  document.getElementById("competitionSelect").innerHTML = active.length===0 ? "<option value=''>Geen actieve competitie</option>" : active.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
-  document.getElementById("competitionList").innerHTML = competitions.map(c=>`<div class="row"><span>${c.name} (${c.type}) ${c.finished?'✅':''}</span></div>`).join("");
-}
-
-function render() {
-  const dashboard = document.getElementById("dashboard");
-  let L=0,M=0;
-  results.forEach(r=>{ if(r.winner==="L") L++; if(r.winner==="M") M++; });
-  dashboard.innerHTML=`<div class="card"><h3>Score totaal</h3><div class="row"><span>L</span><b>${L}</b></div><div class="row"><span>M</span><b>${M}</b></div></div>`;
-}
-
-// ===== ADMIN =====
-function toggleAdmin() { document.getElementById("adminPanel").style.display = document.getElementById("adminPanel").style.display==="none"?"block":"none"; }
-function toggleCompetitionAdmin() { document.getElementById("competitionPanel").style.display = document.getElementById("competitionPanel").style.display==="none"?"block":"none"; }
-
-function addNewGame() { const g=document.getElementById("newGame").value.trim(); if(!g)return; games.push(g); renderGames(); document.getElementById("newGame").value=""; }
-
-renderGames();
-renderCompetitions();
+auth.onAuthStateChanged(user => {
+  if(user) document.getElementById("status").innerText = "Ingelogd als: " + user.email;
+  else document.getElementById("status").innerText = "Niet ingelogd";
+});
 </script>
 
 </body>
