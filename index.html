@@ -154,7 +154,7 @@ let games = JSON.parse(localStorage.getItem("games") || JSON.stringify([
   "Locus","Wingspan","Wingspan 2v2"
 ]));
 
-let results = JSON.parse(localStorage.getItem("results") || "[]");
+let results = []; // Wordt straks geladen vanuit Firestore
 let competitions = JSON.parse(localStorage.getItem("competitions") || "[]");
 
 let historyMode = "active";
@@ -292,6 +292,9 @@ function addGame() {
     scoreM: Number(document.getElementById("scoreM").value || 0),
     competitionId
   });
+
+document.getElementById("scoreL").value = "";
+document.getElementById("scoreM").value = "";
 
   localStorage.setItem("results", JSON.stringify(results));
   render();
@@ -480,13 +483,8 @@ document.getElementById("dashboard").innerHTML = `
 
 // TOGGLES
 function toggleAdmin() {
-  const password = prompt("Voer admin wachtwoord in:");
-  if(password === "Snoef02022020") { // hier zet je je eigen wachtwoord
-    const p = document.getElementById("adminPanel");
-    p.style.display = (p.style.display === "none") ? "block" : "none";
-  } else {
-    alert("Onjuist wachtwoord!");
-  }
+  const p = document.getElementById("adminPanel");
+  p.style.display = (p.style.display === "none") ? "block" : "none";
 }
 
 function toggleCompetitionAdmin() {
@@ -499,6 +497,78 @@ renderGames();
 renderCompetitions();
 renderCompetitionList();
 render();
+
+<script type="module">
+
+// ================= FIREBASE =================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { 
+  getAuth, 
+  signInWithEmailAndPassword,
+  onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  orderBy
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+// 🔥 JOUW FIREBASE CONFIG
+const firebaseConfig = {
+  apiKey: "...",
+  authDomain: "...",
+  projectId: "...",
+  storageBucket: "...",
+  messagingSenderId: "...",
+  appId: "..."
+};
+
+// 🔹 Firebase Initialisatie
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ================= LOGIN KNOP =================
+document.getElementById("loginBtn").onclick = async () => {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    alert("Succesvol ingelogd!");
+  } catch (e) {
+    alert("Fout bij inloggen: " + e.message);
+  }
+};
+
+// ================= INLOG STATUS CHECK =================
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    document.getElementById("userInfo").innerText = "Ingelogd als: " + user.email;
+    loadResults(); // hier laden we de scores
+  } else {
+    document.getElementById("userInfo").innerText = "Niet ingelogd";
+    results = [];
+    render();
+  }
+});
+
+// ================= FIRESTORE RESULTS LADEN =================
+let results = [];
+
+async function loadResults() {
+  const q = query(collection(db, "results"), orderBy("createdAt"));
+  const snap = await getDocs(q);
+
+  results = snap.docs.map(doc => doc.data());
+  render();
+}
+
+// ... hier komt daarna jouw bestaande game / render code
 
 </script>
 
